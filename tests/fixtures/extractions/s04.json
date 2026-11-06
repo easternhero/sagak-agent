@@ -1,0 +1,24 @@
+{
+  "caption": "박서준 / 010-0000-3333",
+  "input_type": "전사 텍스트",
+  "consulted_at": "2026-11-07T10:00:00+09:00",
+  "consultant": "대표",
+  "event": {
+    "theme": "생일/기념일",
+    "venue": "서울",
+    "desired_at": null,
+    "desired_at_text": "다음 달 초쯤",
+    "budget": null,
+    "request": "여자친구 생일"
+  },
+  "consultation": {
+    "summary": "여자친구 생일 이벤트. 날짜·예산 미정, 서울이면 장소 무관.",
+    "follow_up": "고객이 날짜를 정하면 다시 상담",
+    "next_contact": "고객 연락 대기",
+    "questions": ["원하시는 날짜가 정해졌나요?", "예산은 어느 정도로 생각하세요?"]
+  },
+  "evidence": [
+    {"field": "희망 일시", "quote": "다음 달 초쯤… 아직 날짜는 확실하지 않아요", "time": null}
+  ],
+  "transcript": "고객: 여자친구 생일인데요, 다음 달 초쯤… 아직 날짜는 확실하지 않아요.\n고객: 장소는… 음, 서울이면 아무 데나 괜찮아요. 예산은 생각을 좀 해볼게요.\n상담: 날짜 정해지시면 다시 연락 주세요."
+}

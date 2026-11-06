@@ -1,0 +1,26 @@
+{
+  "caption": "김민수 / 010-0000-1111",
+  "input_type": "전사 텍스트",
+  "consulted_at": "2026-11-06T16:05:00+09:00",
+  "consultant": "대표",
+  "event": {
+    "theme": "프로포즈",
+    "venue": "부산 해운대",
+    "desired_at": null,
+    "desired_at_text": null,
+    "budget": null
+  },
+  "consultation": {
+    "summary": "제안한 장소 중 해운대 선호. 빔프로젝터 옵션 추가 문의, 15만 원 안내.",
+    "options": "빔프로젝터",
+    "option_price": 150000,
+    "follow_up": "해운대 장소 12일 가능 여부 확인 후 견적 다시 발송",
+    "next_contact": null,
+    "questions": ["옵션을 포함해 예산이 100만 원을 넘어도 괜찮으신가요?"]
+  },
+  "evidence": [
+    {"field": "희망 장소", "quote": "해운대 쪽이 더 좋아요", "time": null},
+    {"field": "옵션", "quote": "빔프로젝터는 15만 원 추가예요", "time": null}
+  ],
+  "transcript": "고객: 어제 말씀하신 장소 중에 해운대 쪽이 더 좋아요.\n고객: 영상 틀 때 빔프로젝터도 추가할 수 있나요? 가격도 알려주세요.\n상담: 빔프로젝터는 15만 원 추가예요. 해운대 쪽 12일 가능 여부 확인해서 견적 다시 보내드릴게요."
+}

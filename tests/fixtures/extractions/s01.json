@@ -1,0 +1,32 @@
+{
+  "caption": "김민수 / 010-0000-1111 / minsu@example.com",
+  "input_type": "전사 텍스트",
+  "consulted_at": "2026-11-05T14:20:00+09:00",
+  "consultant": "대표",
+  "customer": {"customer_type": "개인"},
+  "event": {
+    "theme": "프로포즈",
+    "product": null,
+    "venue": "부산, 실내",
+    "desired_at": null,
+    "desired_at_text": "12월 12일 저녁",
+    "budget": 1000000,
+    "request": "실내 장소, 꽃 장식, 영상 상영"
+  },
+  "consultation": {
+    "summary": "12월 12일 저녁 부산 프로포즈. 예산 약 100만 원. 실내, 꽃 장식, 영상 상영 희망.",
+    "options": null,
+    "option_price": null,
+    "follow_up": "조건에 맞는 장소와 가능 여부 확인, 제안·견적 준비",
+    "next_contact": "11/06 오후까지 (통화일 기준 다음 날)",
+    "questions": ["프로포즈 시작 시각은 몇 시인가요?", "연도는 2026년이 맞나요?"],
+    "needs_check": ["희망 일시"]
+  },
+  "evidence": [
+    {"field": "희망 일시", "quote": "12월 12일 저녁에 부산에서 프로포즈를 하고 싶어서요", "time": null},
+    {"field": "예산", "quote": "100만 원 정도요", "time": null},
+    {"field": "요청 사항", "quote": "실내에서 꽃 장식이랑 영상 상영이 되면 좋겠어요", "time": null},
+    {"field": "다음 연락", "quote": "내일 오후까지 연락 부탁드려요", "time": null}
+  ],
+  "transcript": "상담: 네, 예시이벤트입니다.\n고객: 안녕하세요. 12월 12일 저녁에 부산에서 프로포즈를 하고 싶어서요.\n상담: 네, 예산은 어느 정도 생각하세요?\n고객: 100만 원 정도요. 실내에서 꽃 장식이랑 영상 상영이 되면 좋겠어요.\n상담: 알겠습니다. 가능한 장소 알아보고 연락드릴게요.\n고객: 내일 오후까지 연락 부탁드려요."
+}
