@@ -1,0 +1,39 @@
+model:
+  default: gpt-6.1-sol
+  provider: openai-codex
+  base_url: https://chatgpt.com/backend-api/codex
+_config_version: 52
+agent:
+  reasoning_effort: medium
+  # 사각사각은 상담 기록만 한다: 필요 없는 도구는 끈다 (terminal, file, skills, clarify, todo만 사용)
+  disabled_toolsets:
+    - web
+    - search
+    - browser
+    - computer_use
+    - image_gen
+    - video_gen
+    - video
+    - vision
+    - tts
+    - x_search
+    - memory
+    - kanban
+    - delegation
+    - cronjob
+    - connections
+    - catalog
+    - desktop_ui
+    - project
+terminal:
+  home_mode: profile
+telemetry:
+  shared_metrics:
+    enabled: false
+    send: false
+    offer_version: 2
+platforms:
+  telegram:
+    enabled: true
+approvals:
+  destructive_slash_confirm: false
