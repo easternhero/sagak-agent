@@ -1,0 +1,25 @@
+# 비밀값 — 절대 커밋하지 않음
+.env
+.env.*
+!.env.example
+auth.json
+*.pem
+
+# 실제 고객 데이터 — 가상 데이터(tests/fixtures)만 커밋
+data/
+recordings/*
+!recordings/README.md
+*.m4a
+*.mp3
+*.wav
+*.ogg
+!tests/fixtures/**
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# macOS
+.DS_Store
