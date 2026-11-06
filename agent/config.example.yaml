@@ -27,6 +27,9 @@ agent:
     - project
 terminal:
   home_mode: profile
+skills:
+  external_dirs:
+    - /path/to/sagak-agent/agent/skills
 telemetry:
   shared_metrics:
     enabled: false

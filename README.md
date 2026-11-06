@@ -4,7 +4,7 @@
 Notion 고객 관리 보드에 요구 사항과 상담 이력을 정리하는 Hermes Agent 기반 에이전트입니다.
 AX School 프로젝트 제출용 레포입니다.
 
-- 상태: 개발 준비 (레포 구조와 문서 정리 완료, 1단계 profile 뼈대 진행 예정)
+- 상태: 텍스트 입력 → Notion 기록 1차 구현 (녹음 전사는 다음 단계)
 - 기획안: [docs/planning.md](docs/planning.md)
 - 개발 계획서: [docs/dev-plan.md](docs/dev-plan.md)
 - 결정 기록: [docs/decisions.md](docs/decisions.md)
@@ -21,6 +21,16 @@ sagak/
 ├── recordings/        로컬 실제 녹음·전사 (커밋 안 됨)
 └── tests/fixtures/    가상 테스트 데이터 (커밋 가능)
 ```
+
+## 실행과 테스트
+
+```bash
+python3 -m unittest discover -s tests -t .           # 단위 테스트 (표준 라이브러리만 사용)
+PYTHONPATH=src python3 -m sagak check tests/fixtures/extractions/s01.json   # 검증만
+PYTHONPATH=src python3 -m sagak ping                 # Notion 접근 확인 (sagak profile 환경변수 필요)
+```
+
+봇에서는 `agent/skills/sagak-intake` 스킬이 `python3 -m sagak record`를 호출합니다.
 
 ## 원칙
 
