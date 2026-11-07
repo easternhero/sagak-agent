@@ -27,6 +27,14 @@ agent:
     - project
 terminal:
   home_mode: profile
+  # 사각사각 명령(python3 -m sagak)이 쓰는 환경변수. 스킬 선언과 별도로 명시해 둔다.
+  env_passthrough:
+    - NOTION_API_KEY
+    - SAGAK_NOTION_CUSTOMERS_DB
+    - SAGAK_NOTION_EVENTS_DB
+    - SAGAK_NOTION_CONSULTATIONS_DB
+    - VOICE_TOOLS_OPENAI_KEY
+    - SAGAK_STT_MODEL
 stt:
   enabled: false   # 녹음은 사각사각 transcribe 명령이 구간 시간과 함께 전사
 skills:

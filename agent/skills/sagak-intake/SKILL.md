@@ -18,6 +18,9 @@ required_environment_variables:
     required_for: "이벤트(의뢰) DB ID"
   - name: SAGAK_NOTION_CONSULTATIONS_DB
     required_for: "상담 이력 DB ID"
+  - name: VOICE_TOOLS_OPENAI_KEY
+    prompt: "STT용 OpenAI 키"
+    required_for: "녹음 전사"
 ---
 
 # 사각사각 상담 기록
