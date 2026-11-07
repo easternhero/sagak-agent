@@ -29,6 +29,7 @@ python3 -m unittest discover -s tests -t .           # 단위 테스트 (표준 
 PYTHONPATH=src python3 -m sagak check tests/fixtures/extractions/s01.json   # 검증만
 PYTHONPATH=src python3 -m sagak ping                 # Notion 접근 확인 (sagak profile 환경변수 필요)
 PYTHONPATH=src python3 -m sagak announce --dry-run   # 봇 변경 안내 미리 보기 (--dry-run 빼면 텔레그램 발송 + [/new] 버튼)
+PYTHONPATH=src python3 -m sagak console              # 맥 브라우저에서 안내 편집·미리 보기·보내기
 ```
 
 봇에서는 `agent/skills/sagak-intake` 스킬이 `python3 -m sagak record`를 호출합니다.

@@ -8,7 +8,8 @@
   python3 -m sagak ping                      Notion 키와 DB 접근 확인
   python3 -m sagak announce [--dry-run] [--env <.env 경로>] [--stdin]
                                            agent/CHANGES.md 새 안내를 텔레그램으로 보내고 [/new] 버튼 띄우기 (맥에서)
-                                           --stdin: 준비 보드에서 편집한 안내를 표준입력으로 받아 보냄
+                                           --stdin: 편집한 안내를 표준입력으로 받아 보냄
+  python3 -m sagak console [--port 8765]     맥에서 안내 보내기 화면 띄우기 (미리 보기·편집·보내기)
 
 종료 코드: 0 성공, 2 입력 문제(다시 요청할 것), 1 그 밖의 오류
 """
@@ -77,13 +78,17 @@ def _resolve(args: list) -> dict:
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     cmd = argv[0] if argv else None
-    if cmd not in ("check", "record", "resolve", "transcribe", "ping", "announce") or (
-            cmd not in ("ping", "announce") and len(argv) < 2):
+    if cmd not in ("check", "record", "resolve", "transcribe", "ping", "announce", "console") or (
+            cmd not in ("ping", "announce", "console") and len(argv) < 2):
         print(__doc__)
         return 1
     try:
         if cmd == "ping":
             _print({"ok": True, "databases": NotionStore.from_env().ping()})
+            return 0
+        if cmd == "console":
+            from .console import serve
+            serve(port=int(_option(argv, "--port") or 8765), env_path=_option(argv, "--env"))
             return 0
         if cmd == "announce":
             text = sys.stdin.read() if "--stdin" in argv else None
