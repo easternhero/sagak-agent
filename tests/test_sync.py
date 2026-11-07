@@ -261,7 +261,7 @@ class ConsultantTest(unittest.TestCase):
 class EventTitleTest(unittest.TestCase):
     def test_long_raw_date_not_in_title(self):
         from sagak.sync import event_title
-        ev = {"theme": "프로포즈", "desired_at": None, "desired_at_text": "아마 8일 정도 / 11월 8일이면 다음 주 일요일"}
+        ev = {"theme": "프로포즈", "desired_at": None, "desired_at_text": "아마 다음 달 초쯤이요 / 날짜는 아직 확실하지 않아요"}
         self.assertEqual(event_title("홍길동", ev), "홍길동 · 프로포즈 · 일정 미정")
 
 
