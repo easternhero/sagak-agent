@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -58,6 +59,17 @@ def _iso(value: Any) -> Optional[str]:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=KST)
     return dt.isoformat()
+
+
+def nearest_future(desired_at: Optional[str], said: Optional[str], consulted_at: str) -> Optional[str]:
+    """연도를 말하지 않았는데 상담일보다 과거로 잡혔으면, 가장 가까운 미래 연도로 옮긴다."""
+    if not desired_at or (said and re.search(r"\d{4}|년", said)):
+        return desired_at
+    base = consulted_at[:10]
+    value = desired_at
+    while value[:10] < base:
+        value = str(int(value[:4]) + 1) + value[4:]
+    return value
 
 
 def _choice(value: Any, allowed: tuple) -> Optional[str]:
@@ -116,6 +128,8 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         "budget": _int(ev.get("budget")),
         "request": _text(ev.get("request")),
     }
+    consulted_at = _iso(data.get("consulted_at")) or now.replace(microsecond=0).isoformat()
+    event["desired_at"] = nearest_future(event["desired_at"], event["desired_at_text"], consulted_at)
     if event["desired_at"] is None:
         flag("희망 일시")
     if event["budget"] is None:
@@ -131,7 +145,7 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         "next_contact": _text(co.get("next_contact")) or "미정",
         "questions": questions,
         "consultant": _text(data.get("consultant")),
-        "consulted_at": _iso(data.get("consulted_at")) or now.replace(microsecond=0).isoformat(),
+        "consulted_at": consulted_at,
         "input_type": _choice(data.get("input_type"), INPUT_TYPES) or "전사 텍스트",
         "needs_check": needs_check,
     }

@@ -77,5 +77,24 @@ class CheckLabelTest(unittest.TestCase):
         self.assertIn("예산", r["consultation"]["needs_check"])
 
 
+
+class YearTest(unittest.TestCase):
+    def test_past_date_without_year_moves_to_next_year(self):
+        data = load("s03")
+        data["consulted_at"] = "2026-11-20T10:00:00+09:00"
+        data["event"]["desired_at"] = "2026-01-05T18:00:00"
+        data["event"]["desired_at_text"] = "1월 5일 저녁 6시"
+        self.assertEqual(build_record(data)["event"]["desired_at"], "2027-01-05T18:00:00+09:00")
+
+    def test_explicit_year_is_kept(self):
+        data = load("s03")
+        data["event"]["desired_at"] = "2026-01-05T18:00:00"
+        data["event"]["desired_at_text"] = "2026년 1월 5일"
+        self.assertEqual(build_record(data)["event"]["desired_at"], "2026-01-05T18:00:00+09:00")
+
+    def test_future_date_unchanged(self):
+        self.assertEqual(build_record(load("s03"))["event"]["desired_at"], "2026-12-19T18:00:00+09:00")
+
+
 if __name__ == "__main__":
     unittest.main()
