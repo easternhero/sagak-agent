@@ -28,6 +28,7 @@ agent:
 terminal:
   home_mode: profile
 skills:
+  write_approval: true
   external_dirs:
     - /path/to/sagak-agent/agent/skills
 telemetry:
