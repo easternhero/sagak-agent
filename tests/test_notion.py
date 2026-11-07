@@ -69,5 +69,12 @@ class MapLinkPropTest(unittest.TestCase):
         self.assertEqual(props["지도 링크"], {"url": "https://naver.me/x"})
         self.assertEqual(props["예약금액"], {"number": 100000})
 
+class DateFormatTest(unittest.TestCase):
+    def test_minute_datetime_sent_with_seconds(self):
+        from sagak.notion import to_property
+        self.assertEqual(to_property("date", "2026-12-12T19:00+09:00"), {"date": {"start": "2026-12-12T19:00:00+09:00"}})
+        self.assertEqual(to_property("date", "2026-12-12"), {"date": {"start": "2026-12-12"}})
+
+
 if __name__ == "__main__":
     unittest.main()

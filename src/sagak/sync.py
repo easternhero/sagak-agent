@@ -40,7 +40,9 @@ def _same(old, new) -> bool:
     try:
         a = datetime.fromisoformat(str(old).replace("Z", "+00:00"))
         b = datetime.fromisoformat(str(new).replace("Z", "+00:00"))
-        return a == b if (a.tzinfo is None) == (b.tzinfo is None) else False
+        if (a.tzinfo is None) != (b.tzinfo is None):
+            return False
+        return a.replace(second=0, microsecond=0) == b.replace(second=0, microsecond=0)  # 분까지만 비교
     except ValueError:
         return False
 

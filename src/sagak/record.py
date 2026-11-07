@@ -63,7 +63,7 @@ def _int(value: Any) -> Optional[int]:
 
 
 def _iso(value: Any) -> Optional[str]:
-    """ISO 날짜/일시만 받는다. 시간대가 없으면 한국 시간으로 본다."""
+    """ISO 날짜/일시만 받는다. 시간대가 없으면 한국 시간으로 본다. 시각은 분까지만."""
     text = _text(value)
     if not text:
         return None
@@ -75,7 +75,7 @@ def _iso(value: Any) -> Optional[str]:
         return None
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=KST)
-    return dt.isoformat()
+    return dt.replace(second=0, microsecond=0).isoformat(timespec="minutes")
 
 
 def nearest_future(desired_at: Optional[str], said: Optional[str], consulted_at: str) -> Optional[str]:
@@ -190,11 +190,11 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
             ev.get("notes"), list) else _text(ev.get("notes"))),
         "request": _join(["접수 표기(괄호): " + name_note if name_note else None, _text(ev.get("request"))]),
     }
-    consulted_at = _iso(data.get("consulted_at")) or now.replace(microsecond=0).isoformat()
+    consulted_at = _iso(data.get("consulted_at")) or now.replace(second=0, microsecond=0).isoformat(timespec="minutes")
     # 날짜만 말하고 시각이 없으면 00:00으로 두고 확인 필요 (D30)
     desired_date = _iso(ev.get("desired_date"))
     if event["desired_at"] is None and desired_date and len(desired_date) == 10:
-        event["desired_at"] = desired_date + "T00:00:00+09:00"
+        event["desired_at"] = desired_date + "T00:00+09:00"
         flag("희망 일시")
     event["desired_at"] = nearest_future(event["desired_at"], event["desired_at_text"], consulted_at)
     if event["desired_at"] is None:

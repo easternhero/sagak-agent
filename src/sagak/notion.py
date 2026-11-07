@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import os
 import urllib.error
 import urllib.request
@@ -83,8 +84,8 @@ def to_property(kind: str, value):
         return {"multi_select": [{"name": v} for v in value]}
     if kind == "number":
         return {"number": value}
-    if kind == "date":
-        return {"date": {"start": value}}
+    if kind == "date":  # 분까지만 다루지만 Notion에는 초를 0으로 채워 표준 형식으로 보낸다
+        return {"date": {"start": re.sub(r"(T\d{2}:\d{2})(?=[+-]\d{2}:\d{2}$|Z$|$)", r"\1:00", str(value))}}
     if kind == "relation":
         return {"relation": [{"id": i} for i in value]}
     if kind == "url":

@@ -34,7 +34,7 @@ class RecordTest(unittest.TestCase):
         r = build_record(load("s03"))
         self.assertEqual(r["customer"]["company"], "하늘상사")
         self.assertEqual(r["customer"]["customer_type"], "기업")
-        self.assertEqual(r["event"]["desired_at"], "2026-12-19T18:00:00+09:00")
+        self.assertEqual(r["event"]["desired_at"], "2026-12-19T18:00+09:00")
         self.assertEqual(r["consultation"]["needs_check"], ["예산"])
 
     def test_s04_missing_values_flagged_not_guessed(self):
@@ -84,16 +84,16 @@ class YearTest(unittest.TestCase):
         data["consulted_at"] = "2026-11-20T10:00:00+09:00"
         data["event"]["desired_at"] = "2026-01-05T18:00:00"
         data["event"]["desired_at_text"] = "1월 5일 저녁 6시"
-        self.assertEqual(build_record(data)["event"]["desired_at"], "2027-01-05T18:00:00+09:00")
+        self.assertEqual(build_record(data)["event"]["desired_at"], "2027-01-05T18:00+09:00")
 
     def test_explicit_year_is_kept(self):
         data = load("s03")
         data["event"]["desired_at"] = "2026-01-05T18:00:00"
         data["event"]["desired_at_text"] = "2026년 1월 5일"
-        self.assertEqual(build_record(data)["event"]["desired_at"], "2026-01-05T18:00:00+09:00")
+        self.assertEqual(build_record(data)["event"]["desired_at"], "2026-01-05T18:00+09:00")
 
     def test_future_date_unchanged(self):
-        self.assertEqual(build_record(load("s03"))["event"]["desired_at"], "2026-12-19T18:00:00+09:00")
+        self.assertEqual(build_record(load("s03"))["event"]["desired_at"], "2026-12-19T18:00+09:00")
 
 
 
@@ -201,7 +201,7 @@ class VenueTest(unittest.TestCase):
         data = load("s01")
         data["event"].update(desired_at=None, desired_date="2026-12-24", desired_at_text="크리스마스 이브")
         rec = build_record(data)
-        self.assertEqual(rec["event"]["desired_at"], "2026-12-24T00:00:00+09:00")
+        self.assertEqual(rec["event"]["desired_at"], "2026-12-24T00:00+09:00")
         self.assertIn("희망 일시", rec["consultation"]["needs_check"])
 
     def test_deposit_recorded_and_flagged(self):
@@ -218,7 +218,7 @@ class EventExtrasTest(unittest.TestCase):
         data["event"].update(confirmed_at="2026-12-12T19:00:00", brand="예시이벤트",
                              notes=["서프라이즈라 여자친구에게 연락 금지", "전날 호텔에 스태프 등록"])
         ev = build_record(data)["event"]
-        self.assertEqual(ev["confirmed_at"], "2026-12-12T19:00:00+09:00")
+        self.assertEqual(ev["confirmed_at"], "2026-12-12T19:00+09:00")
         self.assertEqual(ev["brand"], "예시이벤트")
         self.assertIn("연락 금지", ev["notes"])
 
@@ -226,6 +226,16 @@ class EventExtrasTest(unittest.TestCase):
         data = load("s01")
         data["event"]["brand"] = "다른브랜드"
         self.assertIsNone(build_record(data)["event"]["brand"])
+
+
+class MinutePrecisionTest(unittest.TestCase):
+    def test_seconds_dropped(self):
+        data = load("s01")
+        data["event"]["desired_at"] = "2026-12-12T19:00:37"
+        data["consulted_at"] = "2026-11-07T15:53:41+09:00"
+        rec = build_record(data)
+        self.assertEqual(rec["event"]["desired_at"], "2026-12-12T19:00+09:00")
+        self.assertEqual(rec["consultation"]["consulted_at"], "2026-11-07T15:53+09:00")
 
 
 if __name__ == "__main__":
