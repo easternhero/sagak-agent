@@ -5,6 +5,9 @@
 auth.json
 *.pem
 
+# 공개 레포 검사용 금지어 목록 (PC에만)
+.sagak-denylist
+
 # 업체별 실제 설정 — 예시(agent/business.example.json)만 커밋
 agent/business.json
 
