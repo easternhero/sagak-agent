@@ -42,6 +42,8 @@ sagak/
 
 ## 실행과 테스트
 
+업체별 값(접수 브랜드, 상품명과 고객 안내 이름)은 `agent/business.json`에 둡니다. 레포에는 예시 `agent/business.example.json`만 있으니 복사해서 고쳐 쓰세요(실제 파일은 커밋되지 않음).
+
 ```bash
 python3 -m unittest discover -s tests -t .           # 단위 테스트 (표준 라이브러리만 사용)
 PYTHONPATH=src python3 -m sagak check tests/fixtures/extractions/s01.json   # 검증만

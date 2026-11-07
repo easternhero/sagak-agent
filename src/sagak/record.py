@@ -8,29 +8,13 @@ import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
+from . import business
 from .normalize import mask_numbers, normalize_phone, parse_caption, split_name
 
 KST = timezone(timedelta(hours=9))
 
 THEMES = ("프로포즈", "생일/기념일", "기타")
-BRANDS = ("예시이벤트", "예시스타일")  # 노션 이벤트 '제휴' = 접수 브랜드
-# 희망 이벤트: 관리 페이지 상품명. 고객 안내용 이름으로 말해도 상품명으로 바꿔 기록한다 (D23).
-# 상품 추가: 여기 PRODUCTS(+ 안내 이름은 PRODUCT_ALIASES), 스킬의 product 목록, Notion 선택지 세 곳을 같이 고친다.
-PRODUCTS = ("갤러리패키지", "호텔패키지", "호텔패키지 프리미엄", "레스토랑패키지", "출장 렌탈")
-PRODUCT_ALIASES = {
-    "청담동갤러리프로포즈": "갤러리패키지",
-    "갤러리프로포즈": "갤러리패키지",
-    "호텔프로포즈": "호텔패키지",
-    "신혼집프로포즈": "호텔패키지",
-    "호텔신혼집프로포즈": "호텔패키지",
-    "호텔패키지 프리미엄프로포즈": "호텔패키지 프리미엄",
-    "한강뷰레스토랑레스토랑프로포즈": "레스토랑패키지",
-    "레스토랑레스토랑프로포즈": "레스토랑패키지",
-    "레스토랑프로포즈": "레스토랑패키지",
-    "출장 렌탈렌탈": "출장 렌탈",
-    "출장 렌탈렌탈출장패키지": "출장 렌탈",
-    "출장 렌탈출장": "출장 렌탈",
-}
+# 접수 브랜드(노션 '제휴')와 상품명('희망 이벤트')은 업체별 설정 agent/business.json에서 읽는다 (business.py).
 CUSTOMER_TYPES = ("개인", "기업")
 INPUT_TYPES = ("녹음", "전사 텍스트")
 # Notion '확인 필요' 태그로 쓰는 고정 목록. 그 밖의 항목은 '추가 질문'으로 옮긴다 (태그가 끝없이 늘지 않게).
@@ -114,18 +98,8 @@ def _join(parts: list) -> Optional[str]:
 
 
 def product_of(value: Any) -> Optional[str]:
-    """상품명 또는 안내용 이름 → 관리 페이지 상품명. 모르면 None."""
-    text = _text(value)
-    if not text:
-        return None
-    if text in PRODUCTS:
-        return text
-    key = re.sub(r"[\s·&/()\-]", "", text)
-    for p in PRODUCTS:
-        if key == re.sub(r"\s", "", p):
-            return p
-    return PRODUCT_ALIASES.get(key)
-
+    """상품명 또는 안내 이름 → 관리 페이지 상품명 (업체 설정 기준). 모르면 None."""
+    return business.product_of(_text(value))
 
 def build_record(data: dict, now: Optional[datetime] = None) -> dict:
     """추출 JSON → 기록용 dict. 고객 이름·연락처가 없으면 InputError."""
@@ -185,7 +159,7 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         "budget": _int(ev.get("budget")),
         "deposit": _int(ev.get("deposit")),
         "confirmed_at": _iso(ev.get("confirmed_at")),  # 통화에서 확정한 일시만 (노션 '날짜')
-        "brand": _choice(ev.get("brand"), BRANDS),
+        "brand": business.brand_of(_text(ev.get("brand"))),
         "notes": mask_numbers(_join([_text(n) for n in (ev.get("notes") or []) if _text(n)]) if isinstance(
             ev.get("notes"), list) else _text(ev.get("notes"))),
         "request": _join(["접수 표기(괄호): " + name_note if name_note else None, _text(ev.get("request"))]),

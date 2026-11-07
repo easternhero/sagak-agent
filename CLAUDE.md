@@ -94,4 +94,4 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ## 작업 방식
 - 사용자가 확인해야 할 결정(이름, 위치, 외부 서비스 설정, 삭제)은 진행 전에 묻는다.
 - 코드는 Python. 변경마다 테스트로 확인할 수 있는 기준을 먼저 정한다.
-- 봇 사용자에게 보이는 변경이면 `agent/CHANGES.md` 맨 위에 사용자용 안내 한 줄을 함께 적는다(설정·키 변경은 `[restart]`). 작업 단위마다 맥 레포에 커밋한다. 커밋 시각은 한국 시간으로 남긴다(`TZ=Asia/Seoul git commit …`). `git push`는 하지 않는다(사용자가 원할 때 직접 푸시).
+- 봇 사용자에게 보이는 변경이면 `agent/CHANGES.md` 맨 위에 사용자용 안내 한 줄을 함께 적는다(설정·키 변경은 `[restart]`). 작업 단위마다 개발 PC의 레포에 커밋한다. 커밋 시각은 한국 시간으로 남긴다(`TZ=Asia/Seoul git commit …`). `git push`는 하지 않는다(사용자가 원할 때 직접 푸시).

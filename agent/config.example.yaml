@@ -40,7 +40,7 @@ stt:
 skills:
   write_approval: true
   external_dirs:
-    - /path/to/sagak-agent/agent/skills
+    - /path/to/sagak-agent/agent/skills   # 레포 위치에 맞게
 telemetry:
   shared_metrics:
     enabled: false

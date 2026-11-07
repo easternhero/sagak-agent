@@ -6,10 +6,11 @@
                                            '고객 확인 필요' 상담을 같은 고객/별도 고객으로 연결
   python3 -m sagak transcribe <녹음 파일>     녹음을 구간 시간이 있는 전사로 (lines: "[mm:ss] 화자: 내용")
   python3 -m sagak ping                      Notion 키와 DB 접근 확인
+  python3 -m sagak products                  업체 설정의 브랜드·상품명·고객 안내 이름 보기
   python3 -m sagak announce [--to admin|others] [--dry-run] [--env <.env 경로>] [--stdin]
-                                           agent/CHANGES.md 새 안내를 텔레그램으로 보내고 [/new] 버튼 띄우기 (맥에서)
+                                           agent/CHANGES.md 새 안내를 텔레그램으로 보내고 [/new] 버튼 띄우기 (개발자 PC에서)
                                            --stdin: 편집한 안내를 표준입력으로 받아 보냄
-  python3 -m sagak console [--port 8765]     맥에서 안내 보내기 화면 띄우기 (미리 보기·편집·보내기)
+  python3 -m sagak console [--port 8765]     개발자 PC에서 안내 보내기 화면 띄우기 (미리 보기·편집·보내기)
 
 종료 코드: 0 성공, 2 입력 문제(다시 요청할 것), 1 그 밖의 오류
 """
@@ -78,13 +79,18 @@ def _resolve(args: list) -> dict:
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     cmd = argv[0] if argv else None
-    if cmd not in ("check", "record", "resolve", "transcribe", "ping", "announce", "console") or (
-            cmd not in ("ping", "announce", "console") and len(argv) < 2):
+    if cmd not in ("check", "record", "resolve", "transcribe", "ping", "announce", "console", "products") or (
+            cmd not in ("ping", "announce", "console", "products") and len(argv) < 2):
         print(__doc__)
         return 1
     try:
         if cmd == "ping":
             _print({"ok": True, "databases": NotionStore.from_env().ping()})
+            return 0
+        if cmd == "products":
+            from . import business
+            data = business.load()
+            _print({"ok": True, "brands": data["brands"], "products": data["guide"]})  # 상품명: [고객 안내 이름]
             return 0
         if cmd == "console":
             from .console import serve

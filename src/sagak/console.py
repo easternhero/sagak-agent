@@ -1,4 +1,4 @@
-"""맥에서 띄우는 작은 발송 화면 (D27-B).  python3 -m sagak console [--port 8765]
+"""개발자 PC에서 띄우는 작은 발송 화면 (D27-B).  python3 -m sagak console [--port 8765]
 
 agent/CHANGES.md 중 아직 안 보낸 안내를 보여 주고, 고쳐서 미리 보기(dry-run)·보내기를 한다.
 127.0.0.1에서만 열리고, 페이지에 심은 일회용 토큰과 Host 확인으로 다른 사이트의 요청을 막는다.
@@ -33,7 +33,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 .msg{display:flex;flex-direction:column;gap:6px}.status{font-size:14px;padding:10px 12px;border-radius:8px;background:var(--surface-2)}.status.ok{color:var(--ok)}.status.bad{color:var(--bad)}
 </style></head><body><div class="wrap">
 <h1>사각사각 안내 보내기</h1>
-<p class="lede">봇이 바뀐 점을 알리고 [/new] 버튼을 띄웁니다. ① 관리자에게 먼저 보내 [/restart]·[/new]로 잘 되는지 확인한 뒤 ② 직원에게 보내세요. 줄 끝에 [restart]가 있으면 관리자에게만 [/restart] 버튼이 갑니다. 이 화면은 이 맥에서만 열립니다.</p>
+<p class="lede">봇이 바뀐 점을 알리고 [/new] 버튼을 띄웁니다. ① 관리자에게 먼저 보내 [/restart]·[/new]로 잘 되는지 확인한 뒤 ② 직원에게 보내세요. 줄 끝에 [restart]가 있으면 관리자에게만 [/restart] 버튼이 갑니다. 이 화면은 이 개발자 PC에서만 열립니다.</p>
 <div class="grid">
  <div class="card"><h2>안내 문구</h2><p class="muted" id="meta"></p>
   <textarea id="text" aria-label="안내 문구, 한 줄에 하나"></textarea>

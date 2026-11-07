@@ -111,11 +111,16 @@ class ProductTest(unittest.TestCase):
     def test_guide_names_map_to_product(self):
         from sagak.record import product_of
         self.assertEqual(product_of("갤러리 프로포즈"), "갤러리패키지")
-        self.assertEqual(product_of("호텔/신혼집 프로포즈"), "호텔패키지")
-        self.assertEqual(product_of("레스토랑 프로포즈"), "레스토랑패키지")
-        self.assertEqual(product_of("출장 렌탈 패키지"), "출장 렌탈")
+        self.assertEqual(product_of("호텔/신혼집 프로포즈"), None)  # 안내 이름에 없는 조합은 모름
+        self.assertEqual(product_of("신혼집 프로포즈"), "호텔패키지")
+        self.assertEqual(product_of("렌탈 출장 패키지"), "출장 렌탈")
         self.assertEqual(product_of("레스토랑패키지"), "레스토랑패키지")
-        self.assertEqual(product_of("프리미엄 룸"), "호텔패키지 프리미엄")
+        self.assertEqual(product_of("프리미엄 룸 프로포즈"), "호텔패키지 프리미엄")
+
+    def test_brand_from_greeting(self):
+        from sagak import business
+        self.assertEqual(business.brand_of("네, 예시이벤트입니다"), "예시이벤트")
+        self.assertIsNone(business.brand_of("모르는 곳"))
 
     def test_unknown_product_is_empty(self):
         from sagak.record import product_of
@@ -138,7 +143,7 @@ class StaffTest(unittest.TestCase):
 
     def test_ambiguous_kept_as_is(self):
         from sagak.normalize import match_staff
-        self.assertEqual(match_staff("동현", ["김도윤", "이동현"]), "동현")
+        self.assertEqual(match_staff("도윤", ["김도윤", "이도윤"]), "도윤")
 
 
 class MaskTest(unittest.TestCase):
@@ -182,16 +187,16 @@ class NameNoteTest(unittest.TestCase):
 class VenueTest(unittest.TestCase):
     def test_note_moves_to_questions_and_staff_url_kept(self):
         data = load("s01")
-        data["event"]["venue"] = "용산 그랜드호텔 호텔 (정확한 호텔명 확인 필요)"
+        data["event"]["venue"] = "용산 그랜드호텔 (정확한 호텔명 확인 필요)"
         data["event"]["venue_url"] = "https://naver.me/abcd1234"
         rec = build_record(data)
-        self.assertEqual(rec["event"]["venue"], "용산 그랜드호텔 호텔")
+        self.assertEqual(rec["event"]["venue"], "용산 그랜드호텔")
         self.assertEqual(rec["event"]["map_url"], "https://naver.me/abcd1234")
         self.assertIn("희망 장소 확인: 정확한 호텔명 확인 필요", rec["consultation"]["questions"])
 
     def test_search_link_only_for_confirmed_exact_place(self):
         data = load("s01")
-        data["event"].update(venue="용산 그랜드호텔 호텔", venue_exact=True, venue_url="https://example.com/x")
+        data["event"].update(venue="용산 그랜드호텔", venue_exact=True, venue_url="https://example.com/x")
         rec = build_record(data)
         self.assertTrue(rec["event"]["map_url"].startswith("https://map.naver.com/p/search/"))
         data["event"].update(venue="부산 해운대 바다 보이는 실내", venue_exact=False)

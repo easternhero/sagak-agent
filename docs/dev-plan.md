@@ -35,8 +35,8 @@
 
 | 단계 | 환경 | 비고 |
 |---|---|---|
-| 개발 | 맥 네이티브 Hermes, profile `sagak` | 기존 gateway가 여러 profile을 함께 처리. 모델은 기존 OAuth 구독 로그인을 profile끼리 공유 |
-| 운영 1차 | 맥을 호스트로 한 컨테이너 | named volume, 운영용 봇 분리, 스킬 쓰기 잠금. 런타임은 그때 결정 |
+| 개발 | 개발자 PC의 Hermes, profile `sagak` | 기존 gateway가 여러 profile을 함께 처리. 모델은 기존 OAuth 구독 로그인을 profile끼리 공유 |
+| 운영 1차 | 개발자 PC를 호스트로 한 컨테이너 | named volume, 운영용 봇 분리, 스킬 쓰기 잠금. 런타임은 그때 결정 |
 | 운영 2차 | 클라우드(VPS 등) | profile export로 이전, 암호화 백업 |
 
 - **Claude 세션**: 코드, 스킬, 테스트, 문서, Notion DB 구성, 커밋을 만든다.

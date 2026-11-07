@@ -42,7 +42,7 @@ required_environment_variables:
 - 상담과 관계없는 내용(일상 대화 등)이면 기록하지 말고 그렇다고 알린다.
 - **녹음 파일**이 오면(메시지에 `[The user sent a voice message: <경로>]`나 파일 경로가 붙어 옴) 먼저 전사한다.
 
-      PYTHONPATH=/path/to/sagak-agent/src python3 -m sagak transcribe "<녹음 파일 경로>"
+      PYTHONPATH="${HERMES_SKILL_DIR}/../../../src" python3 -m sagak transcribe "<녹음 파일 경로>"
 
   결과의 `lines`(예: `[01:23] B: 내용`)를 `transcript`로 쓰고, `input_type`은 `녹음`, `evidence.time`에는 근거 문장이 있는 줄의 시간을 넣는다. 화자(A, B)가 상담자인지 고객인지는 내용으로 판단하되, 애매하면 화자 표시 그대로 둔다.
   전사 오류(`BAD_AUDIO`, `UNSUPPORTED_FORMAT`, `FILE_TOO_LARGE`, `EMPTY_AUDIO`)면 기록하지 말고 message대로 재전송을 요청한다. `STT_FAILED`면 잠시 후 다시 보내 달라고 한다.
@@ -59,7 +59,7 @@ required_environment_variables:
   "customer": {"customer_type": "개인 | 기업", "company": "회사·단체명 | null"},
   "event": {
     "theme": "프로포즈 | 생일/기념일 | 기타",
-    "product": "갤러리패키지 | 호텔패키지 | 호텔패키지 프리미엄 | 레스토랑패키지 | 출장 렌탈 | null",
+    "product": "고객이 말한 상품 이름 그대로 | null",
     "venue": "희망 장소명 또는 주소 | null",
     "venue_exact": true,
     "venue_url": "직원이 보낸 네이버 지도 링크 | null",
@@ -69,7 +69,7 @@ required_environment_variables:
     "budget": 1000000,
     "deposit": 100000,
     "confirmed_at": "YYYY-MM-DDTHH:MM (통화에서 예약을 확정했을 때만) | null",
-    "brand": "예시이벤트 | 예시스타일 | null",
+    "brand": "인사말 등에서 들은 브랜드 이름 | null",
     "notes": ["현장에서 챙길 것 (짧게)"],
     "request": "요청 사항 요약 | null"
   },
@@ -87,7 +87,7 @@ required_environment_variables:
 - 날짜만 말하고 시각을 말하지 않았으면 `desired_at`은 `null`, `desired_date`에 날짜를 넣는다(코드가 00:00으로 기록하고 희망 일시 확인 필요 표시).
 - `deposit`(노션 '예약금액')은 상담에서 **안내한 예약금 금액**(원 단위 정수). "30%"처럼 비율만 말했으면 계산하지 말고 `null`로 두고 요약에 그대로 적는다. 입금 여부·입금일은 넣지 않는다.
 - `confirmed_at`(노션 '날짜' = 확정 일시)은 통화에서 **예약이 확정**됐을 때만 넣는다(예: "그날로 확정할게요", 예약금 입금 약속과 함께 일정 확정). 희망·검토 단계면 `null`이고 `desired_at`만 쓴다. 확정 여부가 애매하면 `null`.
-- `brand`(노션 '제휴')는 접수한 브랜드. 상담자의 인사말("네, 예시이벤트입니다")이나 채팅·파일에 브랜드가 분명히 나올 때만 넣고, 모르면 `null`(사람이 고름).
+- `brand`(노션 '제휴')는 접수한 브랜드. 상담자의 인사말("네, OO 이벤트입니다")이나 채팅·파일에 브랜드가 분명히 나올 때만 들은 그대로 넣고, 모르면 `null`(사람이 고름). 코드가 업체 설정의 브랜드 목록에서 맞춘다.
 - `notes`(노션 '특이사항')는 **현장에서 직원이 챙겨야 할 것**만 짧게 목록으로: 서프라이즈라 상대에게 연락 금지, 호텔 사전 등록·스태프 입실 시간, 반입 제한, 알레르기, 주차, 행사 후 소품 회수 등. 상담 요약을 다시 쓰지 않는다. 없으면 빈 목록. 기존 특이사항은 지우지 않고 새 내용만 덧붙여진다.
 - 연도를 말하지 않았으면 상담일 기준 **가장 가까운 미래**의 날짜로 본다(예: 11월 상담에서 '1월 5일' → 다음 해 1월 5일). 날짜와 시각이 모두 분명하지 않으면 `desired_at`은 `null`로 두고 희망 일시 원문을 보존한다.
 - 상대적인 날짜·기한("내일", "다음 주")은 그 말을 한 시각을 기준으로 해석한다. 채팅처럼 발언 시각이 적혀 있으면 그 시각, 없으면 도구로 확인한 수신일을 기준으로 하고 원문도 함께 남긴다. 후속 상담에서 재견적 기한을 언급하지 않았다면 이전 연락 기한이 재견적에도 적용되는지 확인 질문으로 남긴다.
@@ -96,9 +96,9 @@ required_environment_variables:
 - `budget`·`option_price`는 원 단위 정수. "100만 원 정도" → 1000000, "200 안팎"처럼 범위가 불분명하면 값을 넣되 `needs_check`에 "예산".
 - 결제 관련 대화(희망 결제 방법, 예약금·잔금 안내, 입금 약속 등)는 요약·전사·근거에 **그대로 남긴다**. 다만 이벤트의 결제 방식·결제일·총액은 확정하지 않는다(사람이 입력). 계좌번호·카드번호는 코드가 `[번호 가림]`으로 가리므로 따로 지우지 않는다.
 - 업체가 안내한 상품 가격을 고객 예산(`budget`)으로 넣지 않는다. 고객이 예산을 말하지 않았으면 `null`.
-- `product`는 관리 페이지 상품명으로 쓴다. 고객은 안내용 이름으로 말한다: 갤러리 프로포즈 → `갤러리패키지`, 호텔·신혼집 프로포즈 → `호텔패키지`, 프리미엄 룸(호텔패키지의 하이엔드 버전) → `호텔패키지 프리미엄`, 레스토랑(스카이라운지) 프로포즈 → `레스토랑패키지`, 출장 렌탈 패키지 → `출장 렌탈`. 목록 밖 상품(요트·연극·콘서트홀 등)이나 정하지 않았으면 `null`로 두고 `request`에 적는다.
-- `consultant`는 이름만 써도 된다(예: `서준`). 코드가 Notion 직원 명단(상담자 선택지)에서 찾아 `박서준`처럼 맞춘다. 명단에 없으면 받은 이름 그대로 새 상담자로 기록된다.
-- `venue`에는 **장소명이나 주소만** 쓴다(예: `용산 그랜드호텔 호텔`, `서울 강남구 테헤란로 152`). "확인 필요" 같은 메모는 넣지 말고 `questions`에 쓴다(괄호로 붙이면 코드가 질문으로 옮긴다).
+- `product`는 고객이 말한 상품 이름을 그대로 쓴다. 코드가 업체 설정(상품명·고객 안내 이름)에서 관리 페이지 상품명으로 맞추고, 목록에 없으면 비워 둔다. 목록은 `PYTHONPATH="${HERMES_SKILL_DIR}/../../../src" python3 -m sagak products`로 볼 수 있다. 정하지 않았거나 목록 밖 상품이면 `request`에 적는다.
+- `consultant`는 이름만 써도 된다(성 없이도 됨). 코드가 Notion 직원 명단(상담자 선택지)에서 찾아 성까지 맞춘다. 명단에 없으면 받은 이름 그대로 새 상담자로 기록된다.
+- `venue`에는 **장소명이나 주소만** 쓴다(예: `용산 그랜드호텔`, `서울 강남구 테헤란로 152`). "확인 필요" 같은 메모는 넣지 말고 `questions`에 쓴다(괄호로 붙이면 코드가 질문으로 옮긴다).
 - `venue_exact`: `venue`가 특정 장소명(호텔·레스토랑 이름 등)이나 주소면 `true`, "해운대 바다 보이는 실내"처럼 막연하면 `false`. `true`이고 장소에 확인할 점이 없으면 코드가 네이버 지도 검색 링크를 '지도 링크' 칸에 넣는다.
 - `venue_url`: 직원이 그 장소의 **네이버 지도 링크**(map.naver.com, naver.me, place.naver.com)를 보냈을 때만 넣는다. 검색 링크보다 우선하며, 이미 자동 검색 링크가 있던 이벤트는 이 링크로 바뀐다. 링크를 찾거나 지어내지 않는다.
 - `customer_type`은 기본 `개인`. 상담이나 고객 정보에 회사·단체(회사 행사, 단체 예약, 회사명 등)가 나오면 `기업`으로 하고 `company`에 이름을 넣는다.
@@ -109,15 +109,15 @@ required_environment_variables:
 ### 3. 기록
 JSON을 현재 프로필의 scratch 디렉터리(`TMPDIR`)에 고유 파일명으로 저장하고 실행한다. 시스템 `/tmp`나 다른 프로필에 개인정보를 저장하지 않는다.
 
-    PYTHONPATH=/path/to/sagak-agent/src python3 -m sagak record "$TMPDIR/<고유파일명>.json"
+    PYTHONPATH="${HERMES_SKILL_DIR}/../../../src" python3 -m sagak record "$TMPDIR/<고유파일명>.json"
 
 실행 결과의 JSON과 종료 코드를 확보하고, 성공·실패와 관계없이 `finally`에서 입력 JSON 파일을 삭제한다(고객 개인정보). 기록 실행은 한 번만 하고 아래 검증을 이어서 수행한다.
 
 ### 4. 사람의 확인 답변 처리 (`고객 확인 필요`였던 상담)
 직원이 "같은 고객", "별도 고객", 또는 어느 이벤트에 붙일지 답하면 아래 명령으로만 처리한다.
 
-    PYTHONPATH=/path/to/sagak-agent/src python3 -m sagak resolve <상담 링크> same [--customer <고객 링크>] [--event <이벤트 링크>] --by "<답한 사람>"
-    PYTHONPATH=/path/to/sagak-agent/src python3 -m sagak resolve <상담 링크> separate --by "<답한 사람>"
+    PYTHONPATH="${HERMES_SKILL_DIR}/../../../src" python3 -m sagak resolve <상담 링크> same [--customer <고객 링크>] [--event <이벤트 링크>] --by "<답한 사람>"
+    PYTHONPATH="${HERMES_SKILL_DIR}/../../../src" python3 -m sagak resolve <상담 링크> separate --by "<답한 사람>"
 
 - 후보 고객이 하나면 `--customer`는 생략할 수 있다. 여러 명이면 어느 고객인지 먼저 묻는다.
 - 결과가 `NEED_EVENT`이면 후보 이벤트를 보여 주고 골라 달라고 한 뒤 `--event`로 다시 실행한다.
