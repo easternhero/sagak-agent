@@ -6,6 +6,8 @@
                                            '고객 확인 필요' 상담을 같은 고객/별도 고객으로 연결
   python3 -m sagak transcribe <녹음 파일>     녹음을 구간 시간이 있는 전사로 (lines: "[mm:ss] 화자: 내용")
   python3 -m sagak ping                      Notion 키와 DB 접근 확인
+  python3 -m sagak announce [--dry-run] [--env <.env 경로>]
+                                           agent/CHANGES.md 새 안내를 텔레그램으로 보내고 [/new] 버튼 띄우기 (맥에서)
 
 종료 코드: 0 성공, 2 입력 문제(다시 요청할 것), 1 그 밖의 오류
 """
@@ -16,6 +18,7 @@ import re
 import sys
 
 from . import pending
+from .announce import AnnounceError, announce
 from .notion import NotionError, NotionStore
 from .record import InputError, build_record
 from .sync import apply, plan, resolve
@@ -73,12 +76,16 @@ def _resolve(args: list) -> dict:
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     cmd = argv[0] if argv else None
-    if cmd not in ("check", "record", "resolve", "transcribe", "ping") or (cmd != "ping" and len(argv) < 2):
+    if cmd not in ("check", "record", "resolve", "transcribe", "ping", "announce") or (
+            cmd not in ("ping", "announce") and len(argv) < 2):
         print(__doc__)
         return 1
     try:
         if cmd == "ping":
             _print({"ok": True, "databases": NotionStore.from_env().ping()})
+            return 0
+        if cmd == "announce":
+            _print({"ok": True, **announce(dry_run="--dry-run" in argv, env_path=_option(argv, "--env"))})
             return 0
         if cmd == "transcribe":
             _print({"ok": True, **transcribe(argv[1])})
@@ -104,7 +111,7 @@ def main(argv=None) -> int:
     except InputError as e:
         _print({"ok": False, "error": e.code, "message": e.message})
         return 2
-    except (NotionError, OSError, ValueError) as e:
+    except (NotionError, AnnounceError, OSError, ValueError) as e:
         _print({"ok": False, "error": "FAILED", "message": str(e)})
         return 1
 
