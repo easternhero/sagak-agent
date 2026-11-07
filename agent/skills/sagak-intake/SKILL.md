@@ -18,8 +18,8 @@ required_environment_variables:
     required_for: "이벤트(의뢰) DB ID"
   - name: SAGAK_NOTION_CONSULTATIONS_DB
     required_for: "상담 이력 DB ID"
-  - name: VOICE_TOOLS_OPENAI_KEY
-    prompt: "STT용 OpenAI 키"
+  - name: SAGAK_OPENAI_STT_KEY
+    prompt: "STT용 OpenAI 키 (Hermes 자체 음성 키는 보안상 넘겨받을 수 없어 별도 이름)"
     required_for: "녹음 전사"
 ---
 

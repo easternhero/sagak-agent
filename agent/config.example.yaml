@@ -33,7 +33,7 @@ terminal:
     - SAGAK_NOTION_CUSTOMERS_DB
     - SAGAK_NOTION_EVENTS_DB
     - SAGAK_NOTION_CONSULTATIONS_DB
-    - VOICE_TOOLS_OPENAI_KEY
+    - SAGAK_OPENAI_STT_KEY
     - SAGAK_STT_MODEL
 stt:
   enabled: false   # 녹음은 사각사각 transcribe 명령이 구간 시간과 함께 전사

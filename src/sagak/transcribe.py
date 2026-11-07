@@ -96,9 +96,10 @@ def prepare(path: str, workdir: str) -> str:
 
 def transcribe(path: str, model: Optional[str] = None, key: Optional[str] = None, opener=None) -> dict:
     model = model or os.environ.get("SAGAK_STT_MODEL") or DEFAULT_MODEL
-    key = key or os.environ.get("VOICE_TOOLS_OPENAI_KEY") or os.environ.get("OPENAI_API_KEY")
+    # Hermes는 자체 음성 키(VOICE_TOOLS_OPENAI_KEY)를 외부 명령에 넘기지 않으므로 사각사각 전용 이름을 쓴다
+    key = key or os.environ.get("SAGAK_OPENAI_STT_KEY")
     if not key:
-        raise TranscribeError("NO_KEY", "환경변수 없음: VOICE_TOOLS_OPENAI_KEY")
+        raise TranscribeError("NO_KEY", "환경변수 없음: SAGAK_OPENAI_STT_KEY")
     with tempfile.TemporaryDirectory() as workdir:
         audio = prepare(path, workdir)
         size = os.path.getsize(audio)
