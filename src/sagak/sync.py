@@ -13,6 +13,7 @@ from .normalize import normalize_name
 
 OPEN_STATUSES = ("상담진행중", "추후연락", "이벤트진행예정")
 NEW_EVENT_STATUS = "상담진행중"
+BLACKLIST = "B 블랙리스트"
 
 # 기록 키 → 사람이 읽는 이름 (차이 표시용)
 CUSTOMER_LABELS = {"email": "전자메일", "company": "회사·단체명", "customer_type": "고객 구분"}
@@ -55,6 +56,7 @@ def plan(record: dict, store) -> dict:
 
     found = store.find_customers(cust["phone"])
     same = [c for c in found if normalize_name(c.get("name")) == normalize_name(cust["name"])]
+    result["warnings"] = warnings_for(found)
 
     if len(same) == 1:
         to_set, diffs = merge(same[0], cust, CUSTOMER_LABELS, "고객")
@@ -83,6 +85,12 @@ def plan(record: dict, store) -> dict:
 
     result["consultation"] = {"round": round_no if result["event"] else None, "needs_check": needs_check}
     return result
+
+
+def warnings_for(customers: list) -> list:
+    """사람이 붙인 표시 중 상담자에게 알려야 할 것 (블랙리스트)."""
+    return ["블랙리스트 고객: {} (표시 B)".format(c.get("name") or "")
+            for c in customers if BLACKLIST in (c.get("marks") or [])]
 
 
 def choose_event(record: dict, events: list) -> dict:
@@ -130,7 +138,7 @@ def apply(record: dict, p: dict, store) -> dict:
     """plan 결과대로 저장소에 쓴다. 쓰는 순서: 고객 → 이벤트 → 상담 이력."""
     cust, co = record["customer"], record["consultation"]
     out = {"review": p["review"], "needs_check": p["consultation"]["needs_check"], "diffs": p["diffs"],
-           "candidates": p["candidates"], "customer": None, "event": None}
+           "candidates": p["candidates"], "warnings": p.get("warnings", []), "customer": None, "event": None}
 
     customer_id = None
     if p["customer"]:
@@ -194,6 +202,7 @@ def resolve(record: dict, consultation_id: str, decision: str, store, customer_i
         ref = store.create_customer(dict(cust))
         cid, name, events = ref["id"], cust["name"], []
         out_customer = {"action": "create", "url": ref.get("url")}
+        warnings = []
         note = "별도 고객으로 등록"
     elif decision == "same":
         if not customer_id:
@@ -206,6 +215,7 @@ def resolve(record: dict, consultation_id: str, decision: str, store, customer_i
             store.update_customer(cid, to_set)
         events = store.open_events(cid)
         out_customer = {"action": "link", "url": c.get("url")}
+        warnings = warnings_for([c])
         note = "기존 고객 ‘{}’과 같은 사람으로 연결 (접수명 ‘{}’)".format(name, cust["name"])
     else:
         raise InputError("BAD_DECISION", "same 또는 separate만 가능합니다.")
@@ -230,7 +240,7 @@ def resolve(record: dict, consultation_id: str, decision: str, store, customer_i
     lines += ["{} {}: 기존 “{}” / 이번 “{}” (덮어쓰지 않음)".format(d["target"], d["field"], d["existing"], d["new"])
               for d in diffs]
     store.update_consultation(consultation_id, fields, ref["id"], [("연결 확인 결과", lines)])
-    return {"review": "확인 대기", "needs_check": needs, "diffs": diffs, "customer": out_customer,
+    return {"review": "확인 대기", "needs_check": needs, "diffs": diffs, "warnings": warnings, "customer": out_customer,
             "event": {"action": choice["event"]["action"], "url": ref.get("url")},
             "consultation": {"id": consultation_id, "round": round_no, "title": fields["title"]}}
 
@@ -238,6 +248,8 @@ def resolve(record: dict, consultation_id: str, decision: str, store, customer_i
 def body_sections(record: dict, p: dict) -> list:
     """상담 이력 페이지 본문: [(제목, [줄, ...]), ...]"""
     sections = []
+    if p.get("warnings"):
+        sections.append(("주의", p["warnings"]))
     if record["evidence"]:
         lines = []
         for e in record["evidence"]:

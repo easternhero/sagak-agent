@@ -228,5 +228,25 @@ class FreeTextTest(unittest.TestCase):
         self.assertEqual(next(iter(store.events.values()))["request"], "실내 장소, 꽃 장식, 영상 상영")
 
 
+class BlacklistTest(unittest.TestCase):
+    def test_blacklisted_customer_warns(self):
+        store = MemoryStore()
+        first = build_record(load("s01"))
+        apply(first, plan(first, store), store)
+        next(iter(store.customers.values()))["marks"] = ["B 블랙리스트"]
+        second = build_record(load("s02"))
+        p = plan(second, store)
+        out = apply(second, p, store)
+        self.assertEqual(len(out["warnings"]), 1)
+        self.assertIn("블랙리스트", out["warnings"][0])
+        sections = list(store.consultations.values())[-1]["sections"]
+        self.assertEqual(sections[0][0], "주의")
+
+    def test_no_marks_no_warning(self):
+        store = MemoryStore()
+        rec = build_record(load("s01"))
+        self.assertEqual(apply(rec, plan(rec, store), store)["warnings"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

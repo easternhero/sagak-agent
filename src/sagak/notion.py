@@ -18,6 +18,7 @@ CUSTOMER_PROPS = {
     "email": ("전자메일", "email"),
     "company": ("회사·단체명", "rich_text"),
     "customer_type": ("고객 구분", "select"),
+    "marks": ("표시", "multi_select"),  # K 출장 렌탈 · S 스마트스토어 · B 블랙리스트 — 사람이 고른다 (D24)
 }
 EVENT_PROPS = {
     "title": ("제목", "title"),

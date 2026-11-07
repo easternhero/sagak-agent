@@ -13,7 +13,21 @@ from .normalize import normalize_phone, parse_caption
 KST = timezone(timedelta(hours=9))
 
 THEMES = ("프로포즈", "생일/기념일", "기타")
-PRODUCTS = ("호텔패키지", "갤러리패키지", "레스토랑패키지", "소극장패키지")
+# 희망 이벤트: 관리 페이지 상품명. 고객 안내용 이름으로 말해도 상품명으로 바꿔 기록한다 (D23).
+PRODUCTS = ("갤러리패키지", "호텔패키지", "레스토랑패키지", "출장 렌탈", "소극장패키지")
+PRODUCT_ALIASES = {
+    "청담동갤러리프로포즈": "갤러리패키지",
+    "갤러리프로포즈": "갤러리패키지",
+    "호텔프로포즈": "호텔패키지",
+    "신혼집프로포즈": "호텔패키지",
+    "호텔신혼집프로포즈": "호텔패키지",
+    "한강뷰레스토랑레스토랑프로포즈": "레스토랑패키지",
+    "레스토랑레스토랑프로포즈": "레스토랑패키지",
+    "레스토랑프로포즈": "레스토랑패키지",
+    "출장 렌탈렌탈": "출장 렌탈",
+    "출장 렌탈렌탈출장패키지": "출장 렌탈",
+    "출장 렌탈출장": "출장 렌탈",
+}
 CUSTOMER_TYPES = ("개인", "기업")
 INPUT_TYPES = ("녹음", "전사 텍스트")
 # Notion '확인 필요' 태그로 쓰는 고정 목록. 그 밖의 항목은 '추가 질문'으로 옮긴다 (태그가 끝없이 늘지 않게).
@@ -77,6 +91,20 @@ def _choice(value: Any, allowed: tuple) -> Optional[str]:
     return text if text in allowed else None
 
 
+def product_of(value: Any) -> Optional[str]:
+    """상품명 또는 안내용 이름 → 관리 페이지 상품명. 모르면 None."""
+    text = _text(value)
+    if not text:
+        return None
+    if text in PRODUCTS:
+        return text
+    key = re.sub(r"[\s·&/()\-]", "", text)
+    for p in PRODUCTS:
+        if key == re.sub(r"\s", "", p):
+            return p
+    return PRODUCT_ALIASES.get(key)
+
+
 def build_record(data: dict, now: Optional[datetime] = None) -> dict:
     """추출 JSON → 기록용 dict. 고객 이름·연락처가 없으면 InputError."""
     now = now or datetime.now(KST)
@@ -122,7 +150,7 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         flag("이벤트 테마")
     event = {
         "theme": theme,
-        "product": _choice(ev.get("product"), PRODUCTS),
+        "product": product_of(ev.get("product")),
         "venue": _text(ev.get("venue")),
         "desired_at": _iso(ev.get("desired_at")),
         "desired_at_text": _text(ev.get("desired_at_text")),

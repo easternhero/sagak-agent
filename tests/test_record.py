@@ -107,5 +107,19 @@ class CustomerTypeTest(unittest.TestCase):
         self.assertEqual(build_record(data)["customer"]["customer_type"], "기업")
 
 
+class ProductTest(unittest.TestCase):
+    def test_guide_names_map_to_product(self):
+        from sagak.record import product_of
+        self.assertEqual(product_of("갤러리 프로포즈"), "갤러리패키지")
+        self.assertEqual(product_of("호텔/신혼집 프로포즈"), "호텔패키지")
+        self.assertEqual(product_of("레스토랑 프로포즈"), "레스토랑패키지")
+        self.assertEqual(product_of("출장 렌탈 패키지"), "출장 렌탈")
+        self.assertEqual(product_of("레스토랑패키지"), "레스토랑패키지")
+
+    def test_unknown_product_is_empty(self):
+        from sagak.record import product_of
+        self.assertIsNone(product_of("요트 프로포즈"))
+
+
 if __name__ == "__main__":
     unittest.main()
