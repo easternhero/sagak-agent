@@ -3,7 +3,8 @@ import unittest
 
 from tests.helpers import load
 from sagak.record import build_record
-from sagak.sync import OPEN_STATUSES, apply, plan
+from sagak.record import InputError
+from sagak.sync import OPEN_STATUSES, apply, plan, resolve
 
 
 class MemoryStore:
@@ -49,6 +50,20 @@ class MemoryStore:
         i = self._id("s")
         self.consultations[i] = dict(fields, id=i, event_id=event_id, sections=sections)
         return {"id": i, "url": "notion://" + i}
+
+    def get_customer(self, page_id):
+        return copy.deepcopy(self.customers[page_id])
+
+    def get_event(self, page_id):
+        e = copy.deepcopy(self.events[page_id])
+        e["consult_count"] = sum(1 for c in self.consultations.values() if c["event_id"] == page_id)
+        return e
+
+    def update_consultation(self, page_id, fields, event_id, sections):
+        c = self.consultations[page_id]
+        c.update(fields)
+        c["event_id"] = event_id
+        c["sections"] = c["sections"] + sections
 
 
 def run(store, name, mutate=None):
@@ -113,7 +128,7 @@ class SyncTest(unittest.TestCase):
         store = MemoryStore()
         run(store, "s01")
         cid = next(iter(store.customers))
-        store.create_event({"title": "다른 의뢰", "status": "추후연락"}, cid)
+        store.create_event({"title": "다른 의뢰", "status": "추후연락", "theme": "프로포즈"}, cid)
         out = run(store, "s02")
         self.assertEqual(out["customer"]["action"], "link")
         self.assertIsNone(out["event"])
@@ -137,6 +152,71 @@ class SyncTest(unittest.TestCase):
         event = next(iter(store.events.values()))
         self.assertEqual(event["title"], "이지은 · 기타 · 12/19")
 
+
+
+    def test_different_theme_starts_new_event(self):
+        store = MemoryStore()
+        run(store, "s01")  # 프로포즈 진행 중
+        out = run(store, "s04", lambda d: d.update(caption="김민수 / 010-0000-1111"))  # 생일 문의
+        self.assertEqual((out["customer"]["action"], out["event"]["action"]), ("link", "create"))
+        self.assertEqual(out["consultation"]["round"], 1)
+        self.assertEqual(len(store.events), 2)
+
+
+def unresolved(store):
+    """s01 기록 후, 같은 번호·다른 이름으로 생일 문의 → 고객 확인 필요 상태."""
+    run(store, "s01")
+    data = load("s04")
+    data["caption"] = "김민지 / 010-0000-1111"
+    record = build_record(data)
+    p = plan(record, store)
+    out = apply(record, p, store)
+    return record, p, out
+
+
+class ResolveTest(unittest.TestCase):
+    def test_same_customer_different_theme(self):
+        store = MemoryStore()
+        record, p, out = unresolved(store)
+        cid = p["candidates"][0]["id"]
+        sid = out["consultation"]["id"]
+        res = resolve(record, sid, "same", store, customer_id=cid, by="춘자")
+        consult = store.consultations[sid]
+        self.assertEqual(consult["review"], "확인 대기")
+        self.assertNotIn("고객 연결", consult["needs_check"])
+        self.assertEqual(consult["title"], "11/07 김민수 · 1차 상담")       # 기존 고객 이름 유지
+        self.assertEqual(res["event"]["action"], "create")                 # 생일은 새 이벤트
+        self.assertEqual(store.events[consult["event_id"]]["customer_id"], cid)
+        self.assertEqual(store.customers[cid]["name"], "김민수")            # 이름 안 바뀜
+        self.assertIn("확인: 춘자", consult["sections"][-1][1][0])
+
+    def test_same_customer_same_theme_links_next_round(self):
+        store = MemoryStore()
+        run(store, "s01")
+        data = load("s02")
+        data["caption"] = "김민지 / 010-0000-1111"
+        record = build_record(data)
+        p = plan(record, store)
+        out = apply(record, p, store)
+        resolve(record, out["consultation"]["id"], "same", store, customer_id=p["candidates"][0]["id"])
+        consult = store.consultations[out["consultation"]["id"]]
+        self.assertEqual(consult["round"], 2)
+        self.assertEqual(len(store.events), 1)
+
+    def test_separate_customer(self):
+        store = MemoryStore()
+        record, p, out = unresolved(store)
+        res = resolve(record, out["consultation"]["id"], "separate", store)
+        self.assertEqual(res["customer"]["action"], "create")
+        self.assertEqual(len(store.customers), 2)
+        consult = store.consultations[out["consultation"]["id"]]
+        self.assertEqual(consult["title"], "11/07 김민지 · 1차 상담")
+
+    def test_same_without_customer_is_rejected(self):
+        store = MemoryStore()
+        record, p, out = unresolved(store)
+        with self.assertRaises(InputError):
+            resolve(record, out["consultation"]["id"], "same", store)
 
 
 class FreeTextTest(unittest.TestCase):

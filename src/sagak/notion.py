@@ -216,6 +216,24 @@ class NotionStore:
     def update_event(self, page_id: str, fields: dict) -> None:
         self._update(page_id, to_properties(fields, EVENT_PROPS))
 
+    def get_customer(self, page_id: str) -> dict:
+        return from_properties(self._request("GET", "/pages/{}".format(page_id)), CUSTOMER_PROPS)
+
+    def get_event(self, page_id: str) -> dict:
+        page = self._request("GET", "/pages/{}".format(page_id))
+        e = from_properties(page, EVENT_PROPS)
+        e["consult_count"] = len(page.get("properties", {}).get("상담 이력", {}).get("relation") or [])
+        return e
+
+    def update_consultation(self, page_id: str, fields: dict, event_id: Optional[str], sections: list) -> None:
+        props = to_properties(fields, CONSULT_PROPS)
+        props["확인 필요"] = to_property("multi_select", fields.get("needs_check") or [])  # 빈 목록도 반영
+        if event_id:
+            props["이벤트"] = to_property("relation", [event_id])
+        self._update(page_id, props)
+        if sections:
+            self._request("PATCH", "/blocks/{}/children".format(page_id), {"children": to_blocks(sections)})
+
     def create_consultation(self, fields: dict, event_id: Optional[str], sections: list) -> dict:
         props = to_properties(fields, CONSULT_PROPS)
         if event_id:
