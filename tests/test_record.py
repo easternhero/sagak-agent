@@ -166,5 +166,18 @@ class MaskTest(unittest.TestCase):
         self.assertNotIn("110-123-456789", rec["consultation"]["summary"] + rec["transcript"])
 
 
+class NameNoteTest(unittest.TestCase):
+    def test_paren_is_not_part_of_name(self):
+        data = load("s01")
+        data["customer"]["name"] = "김민수(그랜드호텔)"
+        rec = build_record(data)
+        self.assertEqual(rec["customer"]["name"], "김민수")
+        self.assertIn("접수 표기(괄호): 그랜드호텔", rec["event"]["request"])
+
+    def test_only_paren_means_no_name(self):
+        from sagak.normalize import split_name
+        self.assertEqual(split_name("(그랜드호텔)"), (None, "그랜드호텔"))
+
+
 if __name__ == "__main__":
     unittest.main()

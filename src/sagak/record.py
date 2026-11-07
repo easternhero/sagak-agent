@@ -8,7 +8,7 @@ import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
-from .normalize import normalize_phone, parse_caption, mask_numbers
+from .normalize import mask_numbers, normalize_phone, parse_caption, split_name
 
 KST = timezone(timedelta(hours=9))
 
@@ -93,6 +93,11 @@ def _choice(value: Any, allowed: tuple) -> Optional[str]:
     return text if text in allowed else None
 
 
+def _join(parts: list) -> Optional[str]:
+    text = " / ".join(p for p in parts if p)
+    return text or None
+
+
 def product_of(value: Any) -> Optional[str]:
     """상품명 또는 안내용 이름 → 관리 페이지 상품명. 모르면 None."""
     text = _text(value)
@@ -112,7 +117,7 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
     now = now or datetime.now(KST)
     caption = parse_caption(data.get("caption"))
     cust_in = data.get("customer") or {}
-    name = _text(cust_in.get("name")) or caption["name"]
+    name, name_note = split_name(_text(cust_in.get("name")) or caption["name"])
     phone = normalize_phone(cust_in.get("phone")) or caption["phone"]
     if not name or not phone:
         missing = [label for label, v in (("성함", name), ("연락처", phone)) if not v]
@@ -157,7 +162,7 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         "desired_at": _iso(ev.get("desired_at")),
         "desired_at_text": _text(ev.get("desired_at_text")),
         "budget": _int(ev.get("budget")),
-        "request": _text(ev.get("request")),
+        "request": _join(["접수 표기(괄호): " + name_note if name_note else None, _text(ev.get("request"))]),
     }
     consulted_at = _iso(data.get("consulted_at")) or now.replace(microsecond=0).isoformat()
     event["desired_at"] = nearest_future(event["desired_at"], event["desired_at_text"], consulted_at)

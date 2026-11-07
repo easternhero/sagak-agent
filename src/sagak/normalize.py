@@ -61,6 +61,18 @@ def match_staff(name: Optional[str], staff: list) -> Optional[str]:
     return hits[0] if len(hits) == 1 else raw
 
 
+PAREN_RE = re.compile(r"\s*[(（]([^)）]*)[)）]\s*")
+
+
+def split_name(name: Optional[str]):
+    """'김민수(그랜드호텔)' → ('김민수', '그랜드호텔'). 괄호 안은 지역·호텔명·회사명(관리 페이지 표기)."""
+    if not name:
+        return name, None
+    notes = [n.strip() for n in PAREN_RE.findall(name) if n.strip()]
+    rest = PAREN_RE.sub(" ", name).strip()
+    return (rest or None), (", ".join(notes) or None)
+
+
 def parse_caption(caption: Optional[str]) -> dict:
     """'김민수 / 010-1234-5678 / a@b.com / 회사' 형태에서 고객 정보를 꺼낸다.
 
