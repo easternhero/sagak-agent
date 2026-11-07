@@ -26,3 +26,4 @@
 | D19 | 봇의 스킬 자동 수정 | 승인제(skills.write_approval: true) | 테스트 중 봇이 D18과 반대로 규칙을 바꾼 일이 있어 앞당겨 적용 |
 | D20 | 기록 후 Notion 재조회 검증 | 하지 않음 | 코드가 생성 응답을 받을 때만 ok를 돌려주므로 중복 |
 | D21 | STT 모델 | OpenAI gpt-4o-transcribe-diarize (구간 시간 + 화자) | OpenAI가 2027-02-26 종료 예정으로 공지. 설정(SAGAK_STT_MODEL)으로 교체 가능, 그 전에 대체(한국어 특화 STT 등) 검토 |
+| D22 | 고객 구분 기본값 | 개인. 회사·단체 정보가 있으면 기업 | |

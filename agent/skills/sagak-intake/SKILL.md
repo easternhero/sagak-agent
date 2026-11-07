@@ -53,7 +53,7 @@ required_environment_variables:
   "input_type": "전사 텍스트 | 녹음",
   "consulted_at": "상담 시각 ISO (모르면 null → 받은 시각으로 기록)",
   "consultant": "텔레그램으로 보낸 사람의 표시 이름",
-  "customer": {"customer_type": "개인 | 기업 | null", "company": "회사·단체명 | null"},
+  "customer": {"customer_type": "개인 | 기업", "company": "회사·단체명 | null"},
   "event": {
     "theme": "프로포즈 | 생일/기념일 | 기타",
     "product": "호텔패키지 | 갤러리패키지 | 레스토랑패키지 | 소극장패키지 | null",
@@ -80,6 +80,7 @@ required_environment_variables:
 - 후속 업무는 상담자가 약속한 업무와 추가 확인이 필요한 업무를 구분하고, 명시되지 않은 담당자·발송 기한을 만들어 넣지 않는다.
 - `budget`·`option_price`는 원 단위 정수. "100만 원 정도" → 1000000, "200 안팎"처럼 범위가 불분명하면 값을 넣되 `needs_check`에 "예산".
 - 결제 방식·결제 금액 확정·결제일은 넣지 않는다.
+- `customer_type`은 기본 `개인`. 상담이나 고객 정보에 회사·단체(회사 행사, 단체 예약, 회사명 등)가 나오면 `기업`으로 하고 `company`에 이름을 넣는다.
 - **짧게 쓴다.** `summary`는 2~3문장, `next_contact`·`follow_up`은 한 줄. 모르면 `null`(기록 시 '미정').
 - **이번 통화에서 새로 말한 내용만** `event`에 넣는다. 이전 상담 내용을 다시 옮겨 적지 않는다(기존 값은 코드가 유지한다).
 - `needs_check`에는 위 다섯 항목만 쓴다. 그 밖에 확인할 것은 `questions`에 질문으로 쓴다.

@@ -89,7 +89,8 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         raise InputError("MISSING_CUSTOMER", "고객 " + ", ".join(missing) + " 정보가 없습니다.")
 
     company = _text(cust_in.get("company")) or caption["company"]
-    ctype = _choice(cust_in.get("customer_type"), CUSTOMER_TYPES) or ("기업" if company else None)
+    # 기본은 개인. 회사·단체 정보가 있으면 기업.
+    ctype = "기업" if company else (_choice(cust_in.get("customer_type"), CUSTOMER_TYPES) or "개인")
     customer = {
         "name": name,
         "phone": phone,

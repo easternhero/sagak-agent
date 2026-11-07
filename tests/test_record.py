@@ -96,5 +96,16 @@ class YearTest(unittest.TestCase):
         self.assertEqual(build_record(load("s03"))["event"]["desired_at"], "2026-12-19T18:00:00+09:00")
 
 
+
+class CustomerTypeTest(unittest.TestCase):
+    def test_default_personal(self):
+        self.assertEqual(build_record(load("s04"))["customer"]["customer_type"], "개인")
+
+    def test_company_means_business(self):
+        data = load("s04")
+        data["customer"] = {"customer_type": "개인", "company": "하늘상사"}
+        self.assertEqual(build_record(data)["customer"]["customer_type"], "기업")
+
+
 if __name__ == "__main__":
     unittest.main()
