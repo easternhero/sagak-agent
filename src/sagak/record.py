@@ -33,7 +33,7 @@ PRODUCT_ALIASES = {
 CUSTOMER_TYPES = ("개인", "기업")
 INPUT_TYPES = ("녹음", "전사 텍스트")
 # Notion '확인 필요' 태그로 쓰는 고정 목록. 그 밖의 항목은 '추가 질문'으로 옮긴다 (태그가 끝없이 늘지 않게).
-CHECK_LABELS = ("희망 일시", "희망 장소", "예산", "이벤트 테마", "다음 연락 시점", "고객 연결", "이벤트 연결", "기존 정보와 다름")
+CHECK_LABELS = ("희망 일시", "희망 장소", "예산", "예약금", "이벤트 테마", "다음 연락 시점", "고객 연결", "이벤트 연결", "기존 정보와 다름")
 
 
 class InputError(Exception):
@@ -100,6 +100,11 @@ def naver_map_url(value: Any) -> Optional[str]:
     """직원이 보낸 네이버 지도 링크만 받는다. 다른 주소나 지어낸 값은 버린다."""
     text = _text(value)
     return text if text and NAVER_MAP_RE.match(text) else None
+
+
+def naver_search_url(place: str) -> str:
+    from urllib.parse import quote
+    return "https://map.naver.com/p/search/" + quote(place)
 
 
 def _join(parts: list) -> Optional[str]:
@@ -174,13 +179,18 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         "theme": theme,
         "product": product_of(ev.get("product")),
         "venue": venue,
-        "venue_url": naver_map_url(ev.get("venue_url")) if venue else None,
         "desired_at": _iso(ev.get("desired_at")),
         "desired_at_text": _text(ev.get("desired_at_text")),
         "budget": _int(ev.get("budget")),
+        "deposit": _int(ev.get("deposit")),
         "request": _join(["접수 표기(괄호): " + name_note if name_note else None, _text(ev.get("request"))]),
     }
     consulted_at = _iso(data.get("consulted_at")) or now.replace(microsecond=0).isoformat()
+    # 날짜만 말하고 시각이 없으면 00:00으로 두고 확인 필요 (D30)
+    desired_date = _iso(ev.get("desired_date"))
+    if event["desired_at"] is None and desired_date and len(desired_date) == 10:
+        event["desired_at"] = desired_date + "T00:00:00+09:00"
+        flag("희망 일시")
     event["desired_at"] = nearest_future(event["desired_at"], event["desired_at_text"], consulted_at)
     if event["desired_at"] is None:
         flag("희망 일시")
@@ -188,6 +198,16 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         flag("예산")
     if event["venue"] is None:
         flag("희망 장소")
+    if event["deposit"] is not None:
+        flag("예약금")  # 안내한 금액일 뿐 입금 확인이 아님
+    # 지도 링크: 직원이 보낸 네이버 지도 링크 > 확인된 장소의 검색 링크 (D30)
+    staff_url = naver_map_url(ev.get("venue_url"))
+    if staff_url:
+        event["map_url"] = staff_url
+    elif event["venue"] and ev.get("venue_exact") is True and "희망 장소" not in needs_check:
+        event["map_url"] = naver_search_url(event["venue"])
+    else:
+        event["map_url"] = None
 
     consultation = {
         "summary": _text(co.get("summary")),

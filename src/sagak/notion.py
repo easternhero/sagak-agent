@@ -28,6 +28,8 @@ EVENT_PROPS = {
     "desired_at": ("희망 일시", "date"),
     "desired_at_text": ("희망 일시(원문)", "rich_text"),
     "budget": ("예상 금액", "number"),
+    "deposit": ("예약금", "number"),
+    "map_url": ("지도 링크", "url"),
     "request": ("문의 및 신청사항", "rich_text"),
     "status": ("이벤트 상태", "select"),
     "requested_on": ("의뢰일", "date"),
@@ -82,6 +84,8 @@ def to_property(kind: str, value):
         return {"date": {"start": value}}
     if kind == "relation":
         return {"relation": [{"id": i} for i in value]}
+    if kind == "url":
+        return {"url": value}
     raise ValueError(kind)
 
 
@@ -93,9 +97,6 @@ def to_properties(fields: dict, mapping: dict) -> dict:
         if value is None or value == [] or value == "":
             continue
         props[name] = to_property(kind, value)
-    if fields.get("venue") and fields.get("venue_url") and "venue" in mapping:  # 장소명에 네이버 지도 링크
-        props[mapping["venue"][0]] = {"rich_text": [{"type": "text", "text": {
-            "content": str(fields["venue"])[:TEXT_LIMIT], "link": {"url": fields["venue_url"]}}}]}
     return props
 
 
@@ -121,10 +122,6 @@ def from_properties(page: dict, mapping: dict) -> dict:
     for key, (name, _kind) in mapping.items():
         if name in props:
             out[key] = from_property(props[name])
-    if "venue" in mapping and mapping["venue"][0] in props:
-        rich = props[mapping["venue"][0]].get("rich_text") or []
-        out["venue_url"] = next((t.get("href") or ((t.get("text") or {}).get("link") or {}).get("url")
-                                 for t in rich if t.get("href") or (t.get("text") or {}).get("link")), None)
     return out
 
 

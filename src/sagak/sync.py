@@ -23,9 +23,11 @@ EVENT_LABELS = {
     "venue": "희망 장소",
     "desired_at": "희망 일시",
     "budget": "예상 금액",
+    "deposit": "예약금",
 }
 # 서술형 항목은 비어 있을 때만 채우고, 다르더라도 차이로 표시하지 않는다 (상담 내역에 이미 남음)
-EVENT_FILL_ONLY = {"desired_at_text": "희망 일시(원문)", "request": "문의 및 신청사항"}
+EVENT_FILL_ONLY = {"desired_at_text": "희망 일시(원문)", "request": "문의 및 신청사항", "map_url": "지도 링크"}
+SEARCH_PREFIX = "https://map.naver.com/p/search/"
 
 
 def merge(existing: dict, new: dict, labels: dict, target: str):
@@ -107,9 +109,10 @@ def choose_event(record: dict, events: list) -> dict:
         to_set, diffs = merge(e, ev, EVENT_LABELS, "이벤트")
         fill, _ = merge(e, ev, EVENT_FILL_ONLY, "이벤트")
         to_set.update(fill)
-        if ev.get("venue_url") and not e.get("venue_url"):
-            if to_set.get("venue") or normalize_name(e.get("venue")) == normalize_name(ev.get("venue")):
-                to_set["venue"], to_set["venue_url"] = to_set.get("venue") or e.get("venue"), ev["venue_url"]
+        # 자동 검색 링크만 있던 곳에 직원이 보낸 정확한 링크가 오면 바꾼다 (사람이 넣은 링크는 그대로)
+        new_url, old_url = ev.get("map_url"), e.get("map_url") or ""
+        if new_url and old_url.startswith(SEARCH_PREFIX) and not new_url.startswith(SEARCH_PREFIX):
+            to_set["map_url"] = new_url
         return {"event": {"action": "link", "id": e["id"], "url": e.get("url"), "set": to_set},
                 "diffs": diffs, "round": int(e.get("consult_count") or 0) + 1, "candidates": []}
     if len(matching) > 1:

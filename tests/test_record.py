@@ -180,20 +180,36 @@ class NameNoteTest(unittest.TestCase):
 
 
 class VenueTest(unittest.TestCase):
-    def test_note_moves_to_questions_and_url_kept(self):
+    def test_note_moves_to_questions_and_staff_url_kept(self):
         data = load("s01")
         data["event"]["venue"] = "용산 그랜드호텔 호텔 (정확한 호텔명 확인 필요)"
         data["event"]["venue_url"] = "https://naver.me/abcd1234"
         rec = build_record(data)
         self.assertEqual(rec["event"]["venue"], "용산 그랜드호텔 호텔")
-        self.assertEqual(rec["event"]["venue_url"], "https://naver.me/abcd1234")
+        self.assertEqual(rec["event"]["map_url"], "https://naver.me/abcd1234")
         self.assertIn("희망 장소 확인: 정확한 호텔명 확인 필요", rec["consultation"]["questions"])
-        self.assertIn("희망 장소", rec["consultation"]["needs_check"])
 
-    def test_non_naver_url_dropped(self):
+    def test_search_link_only_for_confirmed_exact_place(self):
         data = load("s01")
-        data["event"]["venue_url"] = "https://example.com/place"
-        self.assertIsNone(build_record(data)["event"]["venue_url"])
+        data["event"].update(venue="용산 그랜드호텔 호텔", venue_exact=True, venue_url="https://example.com/x")
+        rec = build_record(data)
+        self.assertTrue(rec["event"]["map_url"].startswith("https://map.naver.com/p/search/"))
+        data["event"].update(venue="부산 해운대 바다 보이는 실내", venue_exact=False)
+        self.assertIsNone(build_record(data)["event"]["map_url"])
+
+    def test_date_only_gets_midnight_and_check(self):
+        data = load("s01")
+        data["event"].update(desired_at=None, desired_date="2026-12-24", desired_at_text="크리스마스 이브")
+        rec = build_record(data)
+        self.assertEqual(rec["event"]["desired_at"], "2026-12-24T00:00:00+09:00")
+        self.assertIn("희망 일시", rec["consultation"]["needs_check"])
+
+    def test_deposit_recorded_and_flagged(self):
+        data = load("s01")
+        data["event"]["deposit"] = "100,000"
+        rec = build_record(data)
+        self.assertEqual(rec["event"]["deposit"], 100000)
+        self.assertIn("예약금", rec["consultation"]["needs_check"])
 
 
 if __name__ == "__main__":

@@ -265,17 +265,20 @@ class EventTitleTest(unittest.TestCase):
         self.assertEqual(event_title("홍길동", ev), "홍길동 · 프로포즈 · 일정 미정")
 
 
-class VenueLinkSyncTest(unittest.TestCase):
-    def test_link_added_to_existing_same_place(self):
+class MapLinkSyncTest(unittest.TestCase):
+    def test_staff_link_replaces_auto_search_link_only(self):
         store = MemoryStore()
         first = build_record(load("s01"))
+        first["event"]["map_url"] = "https://map.naver.com/p/search/x"
         apply(first, plan(first, store), store)
-        ev = next(iter(store.events.values()))
         second = build_record(load("s02"))
-        second["event"]["venue"] = ev.get("venue") or "부산 해운대"
-        second["event"]["venue_url"] = "https://naver.me/y"
+        second["event"]["map_url"] = "https://naver.me/exact"
         apply(second, plan(second, store), store)
-        self.assertEqual(next(iter(store.events.values()))["venue_url"], "https://naver.me/y")
+        self.assertEqual(next(iter(store.events.values()))["map_url"], "https://naver.me/exact")
+        third = build_record(load("s02"))
+        third["event"]["map_url"] = "https://map.naver.com/p/search/other"
+        apply(third, plan(third, store), store)
+        self.assertEqual(next(iter(store.events.values()))["map_url"], "https://naver.me/exact")
 
 
 if __name__ == "__main__":
