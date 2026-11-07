@@ -179,5 +179,22 @@ class NameNoteTest(unittest.TestCase):
         self.assertEqual(split_name("(그랜드호텔)"), (None, "그랜드호텔"))
 
 
+class VenueTest(unittest.TestCase):
+    def test_note_moves_to_questions_and_url_kept(self):
+        data = load("s01")
+        data["event"]["venue"] = "용산 그랜드호텔 호텔 (정확한 호텔명 확인 필요)"
+        data["event"]["venue_url"] = "https://naver.me/abcd1234"
+        rec = build_record(data)
+        self.assertEqual(rec["event"]["venue"], "용산 그랜드호텔 호텔")
+        self.assertEqual(rec["event"]["venue_url"], "https://naver.me/abcd1234")
+        self.assertIn("희망 장소 확인: 정확한 호텔명 확인 필요", rec["consultation"]["questions"])
+        self.assertIn("희망 장소", rec["consultation"]["needs_check"])
+
+    def test_non_naver_url_dropped(self):
+        data = load("s01")
+        data["event"]["venue_url"] = "https://example.com/place"
+        self.assertIsNone(build_record(data)["event"]["venue_url"])
+
+
 if __name__ == "__main__":
     unittest.main()

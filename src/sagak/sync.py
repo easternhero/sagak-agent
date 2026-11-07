@@ -107,6 +107,9 @@ def choose_event(record: dict, events: list) -> dict:
         to_set, diffs = merge(e, ev, EVENT_LABELS, "이벤트")
         fill, _ = merge(e, ev, EVENT_FILL_ONLY, "이벤트")
         to_set.update(fill)
+        if ev.get("venue_url") and not e.get("venue_url"):
+            if to_set.get("venue") or normalize_name(e.get("venue")) == normalize_name(ev.get("venue")):
+                to_set["venue"], to_set["venue_url"] = to_set.get("venue") or e.get("venue"), ev["venue_url"]
         return {"event": {"action": "link", "id": e["id"], "url": e.get("url"), "set": to_set},
                 "diffs": diffs, "round": int(e.get("consult_count") or 0) + 1, "candidates": []}
     if len(matching) > 1:

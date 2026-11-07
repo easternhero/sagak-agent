@@ -62,5 +62,17 @@ class NotionTest(unittest.TestCase):
         self.assertNotIn("예상 금액", body2["properties"])
 
 
+class VenueLinkTest(unittest.TestCase):
+    def test_venue_written_as_link_and_read_back(self):
+        from sagak.notion import EVENT_PROPS, from_properties, to_properties
+        props = to_properties({"venue": "용산 그랜드호텔 호텔", "venue_url": "https://naver.me/x"}, EVENT_PROPS)
+        rich = props["희망 장소"]["rich_text"][0]
+        self.assertEqual(rich["text"]["link"]["url"], "https://naver.me/x")
+        page = {"id": "e1", "properties": {"희망 장소": {"type": "rich_text", "rich_text": [
+            {"plain_text": "용산 그랜드호텔 호텔", "href": "https://naver.me/x"}]}}}
+        out = from_properties(page, EVENT_PROPS)
+        self.assertEqual((out["venue"], out["venue_url"]), ("용산 그랜드호텔 호텔", "https://naver.me/x"))
+
+
 if __name__ == "__main__":
     unittest.main()

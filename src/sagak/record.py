@@ -93,6 +93,15 @@ def _choice(value: Any, allowed: tuple) -> Optional[str]:
     return text if text in allowed else None
 
 
+NAVER_MAP_RE = re.compile(r"^https://(map\.naver\.com|naver\.me|(m\.)?place\.naver\.com|m\.map\.naver\.com)/\S+$")
+
+
+def naver_map_url(value: Any) -> Optional[str]:
+    """직원이 보낸 네이버 지도 링크만 받는다. 다른 주소나 지어낸 값은 버린다."""
+    text = _text(value)
+    return text if text and NAVER_MAP_RE.match(text) else None
+
+
 def _join(parts: list) -> Optional[str]:
     text = " / ".join(p for p in parts if p)
     return text or None
@@ -152,13 +161,20 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         if label not in needs_check:
             needs_check.append(label)
 
+    # 장소는 장소명·주소만. 괄호 속 메모는 고객에게 물을 것으로 옮긴다
+    venue, venue_note = split_name(_text(ev.get("venue")))
+    if venue_note:
+        questions.append("희망 장소 확인: " + venue_note)
+        flag("희망 장소")
+
     theme = _choice(ev.get("theme"), THEMES)
     if theme is None:
         flag("이벤트 테마")
     event = {
         "theme": theme,
         "product": product_of(ev.get("product")),
-        "venue": _text(ev.get("venue")),
+        "venue": venue,
+        "venue_url": naver_map_url(ev.get("venue_url")) if venue else None,
         "desired_at": _iso(ev.get("desired_at")),
         "desired_at_text": _text(ev.get("desired_at_text")),
         "budget": _int(ev.get("budget")),

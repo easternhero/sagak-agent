@@ -265,5 +265,18 @@ class EventTitleTest(unittest.TestCase):
         self.assertEqual(event_title("홍길동", ev), "홍길동 · 프로포즈 · 일정 미정")
 
 
+class VenueLinkSyncTest(unittest.TestCase):
+    def test_link_added_to_existing_same_place(self):
+        store = MemoryStore()
+        first = build_record(load("s01"))
+        apply(first, plan(first, store), store)
+        ev = next(iter(store.events.values()))
+        second = build_record(load("s02"))
+        second["event"]["venue"] = ev.get("venue") or "부산 해운대"
+        second["event"]["venue_url"] = "https://naver.me/y"
+        apply(second, plan(second, store), store)
+        self.assertEqual(next(iter(store.events.values()))["venue_url"], "https://naver.me/y")
+
+
 if __name__ == "__main__":
     unittest.main()
