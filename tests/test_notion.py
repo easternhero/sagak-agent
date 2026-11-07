@@ -67,7 +67,7 @@ class MapLinkPropTest(unittest.TestCase):
         from sagak.notion import EVENT_PROPS, to_properties
         props = to_properties({"map_url": "https://naver.me/x", "deposit": 100000}, EVENT_PROPS)
         self.assertEqual(props["지도 링크"], {"url": "https://naver.me/x"})
-        self.assertEqual(props["예약금"], {"number": 100000})
+        self.assertEqual(props["예약금액"], {"number": 100000})
 
 if __name__ == "__main__":
     unittest.main()

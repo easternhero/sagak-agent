@@ -28,7 +28,7 @@ EVENT_PROPS = {
     "desired_at": ("희망 일시", "date"),
     "desired_at_text": ("희망 일시(원문)", "rich_text"),
     "budget": ("예상 금액", "number"),
-    "deposit": ("예약금", "number"),
+    "deposit": ("예약금액", "number"),  # 친구가 만든 칸
     "map_url": ("지도 링크", "url"),
     "request": ("문의 및 신청사항", "rich_text"),
     "status": ("이벤트 상태", "select"),

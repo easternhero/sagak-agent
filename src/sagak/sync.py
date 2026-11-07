@@ -23,7 +23,7 @@ EVENT_LABELS = {
     "venue": "희망 장소",
     "desired_at": "희망 일시",
     "budget": "예상 금액",
-    "deposit": "예약금",
+    "deposit": "예약금액",
 }
 # 서술형 항목은 비어 있을 때만 채우고, 다르더라도 차이로 표시하지 않는다 (상담 내역에 이미 남음)
 EVENT_FILL_ONLY = {"desired_at_text": "희망 일시(원문)", "request": "문의 및 신청사항", "map_url": "지도 링크"}
