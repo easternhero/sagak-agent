@@ -141,5 +141,30 @@ class StaffTest(unittest.TestCase):
         self.assertEqual(match_staff("동현", ["김도윤", "이동현"]), "동현")
 
 
+class MaskTest(unittest.TestCase):
+    def test_account_and_card_masked_phone_kept(self):
+        from sagak.normalize import mask_numbers
+        t = "국민 123456-01-234567 로 입금, 카드 1234 5678 9012 3456, 연락처 010-1234-5678, 사무실 02-123-4567"
+        out = mask_numbers(t)
+        self.assertNotIn("123456-01-234567", out)
+        self.assertNotIn("9012", out)
+        self.assertIn("010-1234-5678", out)
+        self.assertIn("02-123-4567", out)
+        self.assertEqual(out.count("[번호 가림]"), 2)
+
+    def test_chat_timestamps_untouched(self):
+        from sagak.normalize import mask_numbers
+        t = "2026-11-05 19:46:42, 박서준 : 예약금 입금 확인했습니다 2026-11-06"
+        self.assertEqual(mask_numbers(t), t)
+
+    def test_payment_talk_kept_in_record(self):
+        data = load("s01")
+        data["consultation"]["summary"] = "카드 결제 희망. 예약금 30% 안내, 계좌 110-123-456789 전달."
+        data["transcript"] = "B: 신한 110-123-456789 로 예약금 보내 주세요"
+        rec = build_record(data)
+        self.assertIn("카드 결제 희망", rec["consultation"]["summary"])
+        self.assertNotIn("110-123-456789", rec["consultation"]["summary"] + rec["transcript"])
+
+
 if __name__ == "__main__":
     unittest.main()

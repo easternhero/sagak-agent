@@ -8,7 +8,7 @@ import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
-from .normalize import normalize_phone, parse_caption
+from .normalize import normalize_phone, parse_caption, mask_numbers
 
 KST = timezone(timedelta(hours=9))
 
@@ -192,10 +192,18 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
                 "time": _text(item.get("time")),
             })
 
+    # 결제 대화는 남기되 계좌·카드번호만 가린다 (D29)
+    for key in ("summary", "options", "follow_up", "next_contact"):
+        consultation[key] = mask_numbers(consultation.get(key))
+    consultation["questions"] = [mask_numbers(q) for q in consultation.get("questions") or []]
+    event["request"] = mask_numbers(event.get("request"))
+    for e in evidence:
+        e["quote"] = mask_numbers(e["quote"])
+
     return {
         "customer": customer,
         "event": event,
         "consultation": consultation,
         "evidence": evidence,
-        "transcript": _text(data.get("transcript")),
+        "transcript": mask_numbers(_text(data.get("transcript"))),
     }

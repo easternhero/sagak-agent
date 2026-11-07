@@ -23,6 +23,25 @@ def normalize_name(name: Optional[str]) -> str:
     return re.sub(r"\s+", "", name or "")
 
 
+# 숫자 10자리 이상(하이픈·공백 허용) = 계좌·카드번호 후보. 휴대폰 번호(01X, 10~11자리)는 남긴다 (D29).
+# 공백은 날짜·시각("2026-11-05 19:46")과 섞이므로 계좌 패턴엔 하이픈만, 카드는 4자리×4 묶음만 따로.
+LONG_NUMBER_RE = re.compile(r"(?<![\d-])(?:\d{4}[ -]\d{4}[ -]\d{4}[ -]\d{4}|\d(?:-?\d){9,})(?![\d-])")
+MASK = "[번호 가림]"
+
+
+def mask_numbers(text: Optional[str]) -> Optional[str]:
+    """계좌번호·카드번호처럼 긴 번호를 가린다. 휴대폰 번호는 그대로."""
+    if not text:
+        return text
+
+    def repl(m):
+        digits = re.sub(r"\D", "", m.group(0))
+        if re.fullmatch(r"01[016789]\d{7,8}", digits):
+            return m.group(0)
+        return MASK
+    return LONG_NUMBER_RE.sub(repl, text)
+
+
 TITLE_RE = re.compile(r"(님|씨|대표님?|실장님?|팀장님?|과장님?|매니저님?)$")
 
 
