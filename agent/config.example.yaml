@@ -27,6 +27,8 @@ agent:
     - project
 terminal:
   home_mode: profile
+stt:
+  enabled: false   # 녹음은 사각사각 transcribe 명령이 구간 시간과 함께 전사
 skills:
   write_approval: true
   external_dirs:

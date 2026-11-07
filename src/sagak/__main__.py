@@ -4,6 +4,7 @@
   python3 -m sagak resolve <상담 링크> same [--customer <고객 링크>] [--event <이벤트 링크>] [--by <확인자>]
   python3 -m sagak resolve <상담 링크> separate [--by <확인자>]
                                            '고객 확인 필요' 상담을 같은 고객/별도 고객으로 연결
+  python3 -m sagak transcribe <녹음 파일>     녹음을 구간 시간이 있는 전사로 (lines: "[mm:ss] 화자: 내용")
   python3 -m sagak ping                      Notion 키와 DB 접근 확인
 
 종료 코드: 0 성공, 2 입력 문제(다시 요청할 것), 1 그 밖의 오류
@@ -18,6 +19,7 @@ from . import pending
 from .notion import NotionError, NotionStore
 from .record import InputError, build_record
 from .sync import apply, plan, resolve
+from .transcribe import TranscribeError, transcribe
 
 
 def _load(arg: str) -> dict:
@@ -71,12 +73,15 @@ def _resolve(args: list) -> dict:
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     cmd = argv[0] if argv else None
-    if cmd not in ("check", "record", "resolve", "ping") or (cmd != "ping" and len(argv) < 2):
+    if cmd not in ("check", "record", "resolve", "transcribe", "ping") or (cmd != "ping" and len(argv) < 2):
         print(__doc__)
         return 1
     try:
         if cmd == "ping":
             _print({"ok": True, "databases": NotionStore.from_env().ping()})
+            return 0
+        if cmd == "transcribe":
+            _print({"ok": True, **transcribe(argv[1])})
             return 0
         if cmd == "resolve":
             _print({"ok": True, **_resolve(argv[1:])})
@@ -93,6 +98,9 @@ def main(argv=None) -> int:
             out["pending"] = True
         _print({"ok": True, **out})
         return 0
+    except TranscribeError as e:
+        _print({"ok": False, "error": e.code, "message": e.message})
+        return 1 if e.code in ("STT_FAILED", "NO_KEY") else 2
     except InputError as e:
         _print({"ok": False, "error": e.code, "message": e.message})
         return 2
