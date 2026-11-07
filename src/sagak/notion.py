@@ -35,7 +35,7 @@ EVENT_PROPS = {
 CONSULT_PROPS = {
     "title": ("제목", "title"),
     "round": ("상담 차수", "number"),
-    "consultant": ("상담자", "rich_text"),
+    "consultant": ("상담자", "select"),  # 직원 이름 선택지. 없는 이름이면 Notion이 선택지를 새로 만든다
     "consulted_at": ("상담 일시", "date"),
     "summary": ("상담 내역", "rich_text"),
     "options": ("옵션 내역", "rich_text"),
@@ -183,6 +183,12 @@ class NotionStore:
     # --- sync.py가 쓰는 저장소 인터페이스 ---
     def ping(self) -> dict:
         return {k: self._request("GET", "/databases/{}".format(v))["id"] for k, v in self.dbs.items()}
+
+    def staff(self) -> list:
+        """상담 이력 DB '상담자' 선택지 = 직원 명단 (Notion에서 관리)."""
+        db = self._request("GET", "/databases/{}".format(self.dbs["consultations"]))
+        prop = db.get("properties", {}).get("상담자", {})
+        return [o["name"] for o in (prop.get("select") or {}).get("options", [])]
 
     def find_customers(self, phone: str) -> list:
         pages = self._query("customers", {"property": "연락처", "phone_number": {"equals": phone}})

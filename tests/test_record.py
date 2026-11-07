@@ -122,5 +122,24 @@ class ProductTest(unittest.TestCase):
         self.assertIsNone(product_of("요트 프로포즈"))
 
 
+class StaffTest(unittest.TestCase):
+    STAFF = ["박서준", "최하늘", "김도윤", "정유나"]
+
+    def test_given_name_maps_to_full_name(self):
+        from sagak.normalize import match_staff
+        self.assertEqual(match_staff("서준", self.STAFF), "박서준")
+        self.assertEqual(match_staff("서준님", self.STAFF), "박서준")
+        self.assertEqual(match_staff("박 서준", self.STAFF), "박서준")
+
+    def test_unknown_kept_as_is(self):
+        from sagak.normalize import match_staff
+        self.assertEqual(match_staff("춘자", self.STAFF), "춘자")
+        self.assertEqual(match_staff("민", self.STAFF), "민")
+
+    def test_ambiguous_kept_as_is(self):
+        from sagak.normalize import match_staff
+        self.assertEqual(match_staff("동현", ["김도윤", "이동현"]), "동현")
+
+
 if __name__ == "__main__":
     unittest.main()

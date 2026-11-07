@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .normalize import normalize_name
+from .normalize import match_staff, normalize_name
 
 OPEN_STATUSES = ("상담진행중", "추후연락", "이벤트진행예정")
 NEW_EVENT_STATUS = "상담진행중"
@@ -166,6 +166,8 @@ def apply(record: dict, p: dict, store) -> dict:
 
     round_no = p["consultation"]["round"]
     fields = dict(co)
+    if fields.get("consultant") and hasattr(store, "staff"):
+        fields["consultant"] = match_staff(fields["consultant"], store.staff())
     fields["needs_check"] = p["consultation"]["needs_check"]
     fields["round"] = round_no
     fields["review"] = p["review"]

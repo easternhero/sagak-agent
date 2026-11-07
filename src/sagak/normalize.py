@@ -23,6 +23,25 @@ def normalize_name(name: Optional[str]) -> str:
     return re.sub(r"\s+", "", name or "")
 
 
+TITLE_RE = re.compile(r"(님|씨|대표님?|실장님?|팀장님?|과장님?|매니저님?)$")
+
+
+def match_staff(name: Optional[str], staff: list) -> Optional[str]:
+    """상담자 이름을 직원 명단의 이름으로 맞춘다. '서준', '서준님' → '박서준'.
+
+    정확히 같거나, 성을 뺀 이름이 직원 한 명과만 맞으면 그 직원. 아니면 받은 이름 그대로(직원 외 상담자).
+    """
+    raw = (name or "").strip()
+    key = TITLE_RE.sub("", normalize_name(raw))
+    if not key:
+        return raw or None
+    for s in staff:
+        if normalize_name(s) == key:
+            return s
+    hits = [s for s in staff if len(key) >= 2 and normalize_name(s).endswith(key)]
+    return hits[0] if len(hits) == 1 else raw
+
+
 def parse_caption(caption: Optional[str]) -> dict:
     """'김민수 / 010-1234-5678 / a@b.com / 회사' 형태에서 고객 정보를 꺼낸다.
 

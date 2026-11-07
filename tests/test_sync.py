@@ -248,5 +248,15 @@ class BlacklistTest(unittest.TestCase):
         self.assertEqual(apply(rec, plan(rec, store), store)["warnings"], [])
 
 
+class ConsultantTest(unittest.TestCase):
+    def test_consultant_matched_to_staff(self):
+        store = MemoryStore()
+        store.staff = lambda: ["박서준", "최하늘"]
+        rec = build_record(load("s01"))
+        rec["consultation"]["consultant"] = "서준"
+        apply(rec, plan(rec, store), store)
+        self.assertEqual(list(store.consultations.values())[0]["consultant"], "박서준")
+
+
 if __name__ == "__main__":
     unittest.main()
