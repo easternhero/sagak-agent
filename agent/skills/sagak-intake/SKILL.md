@@ -83,7 +83,18 @@ JSON을 현재 프로필의 scratch 디렉터리(`TMPDIR`)에 고유 파일명�
 
 실행 결과의 JSON과 종료 코드를 확보하고, 성공·실패와 관계없이 `finally`에서 입력 JSON 파일을 삭제한다(고객 개인정보). 기록 실행은 한 번만 하고 아래 검증을 이어서 수행한다.
 
-### 4. 답장
+### 4. 사람의 확인 답변 처리 (`고객 확인 필요`였던 상담)
+직원이 "같은 고객", "별도 고객", 또는 어느 이벤트에 붙일지 답하면 아래 명령으로만 처리한다.
+
+    PYTHONPATH=/path/to/sagak-agent/src python3 -m sagak resolve <상담 링크> same [--customer <고객 링크>] [--event <이벤트 링크>] --by "<답한 사람>"
+    PYTHONPATH=/path/to/sagak-agent/src python3 -m sagak resolve <상담 링크> separate --by "<답한 사람>"
+
+- 후보 고객이 하나면 `--customer`는 생략할 수 있다. 여러 명이면 어느 고객인지 먼저 묻는다.
+- 결과가 `NEED_EVENT`이면 후보 이벤트를 보여 주고 골라 달라고 한 뒤 `--event`로 다시 실행한다.
+- 결과가 `NO_PENDING`이면 자동 처리할 수 없다. "Notion에서 직접 연결해 주세요"라고 안내한다.
+- 같은 고객이어도 기존 고객 이름은 바꾸지 않는다. 이름 정정은 사람이 Notion에서 한다.
+
+### 5. 답장
 결과 JSON을 보고 SOUL의 답장 형식으로 짧게 답한다.
 - `review`가 `확인 대기`: "✅ OOO님 · 테마 · N차 상담 기록 완료" + 핵심 조건 + 확인 필요 + `consultation.url`
 - `review`가 `고객 확인 필요`: 자동 연결하지 않은 이유와 `candidates`를 보여 주고, 상담 이력 링크를 준다.
@@ -91,6 +102,7 @@ JSON을 현재 프로필의 scratch 디렉터리(`TMPDIR`)에 고유 파일명�
 - 연락처·이메일 전체를 답장에 다시 쓰지 않는다.
 
 ## Pitfalls
+- **Notion에는 `python3 -m sagak` 명령(record, resolve)으로만 쓴다.** curl·Python 등으로 Notion API를 직접 호출하지 않는다. 명령으로 할 수 없는 수정(이름 정정, 이벤트 상태 변경, 삭제 등)은 하지 말고 사람이 Notion에서 하도록 안내한다.
 - 종료 코드 2(`MISSING_CUSTOMER`, `EMPTY_CONSULTATION`): 기록되지 않았다. message대로 다시 요청한다.
 - 종료 코드 1: 전체가 미기록됐다고 단정하지 않는다. 고객 → 이벤트 → 상담 순으로 쓰므로 일부만 기록됐을 수 있다. 오류 내용을 짧게 전하고 기록 명령은 재실행하지 않는다(중복 기록 방지).
 - 같은 상담을 두 번 기록하지 않는다. 사용자가 다시 보내 달라고 하기 전에는 재실행하지 않는다.
