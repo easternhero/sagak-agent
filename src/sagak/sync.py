@@ -24,10 +24,25 @@ EVENT_LABELS = {
     "desired_at": "희망 일시",
     "budget": "예상 금액",
     "deposit": "예약금액",
+    "confirmed_at": "날짜(확정)",
+    "brand": "제휴",
 }
 # 서술형 항목은 비어 있을 때만 채우고, 다르더라도 차이로 표시하지 않는다 (상담 내역에 이미 남음)
 EVENT_FILL_ONLY = {"desired_at_text": "희망 일시(원문)", "request": "문의 및 신청사항", "map_url": "지도 링크"}
 SEARCH_PREFIX = "https://map.naver.com/p/search/"
+
+
+def _same(old, new) -> bool:
+    """같은 값인지. 노션이 돌려주는 일시(밀리초·Z 표기)와 우리가 보낸 일시를 같은 시각으로 본다."""
+    if str(old) == str(new):
+        return True
+    from datetime import datetime
+    try:
+        a = datetime.fromisoformat(str(old).replace("Z", "+00:00"))
+        b = datetime.fromisoformat(str(new).replace("Z", "+00:00"))
+        return a == b if (a.tzinfo is None) == (b.tzinfo is None) else False
+    except ValueError:
+        return False
 
 
 def merge(existing: dict, new: dict, labels: dict, target: str):
@@ -40,7 +55,7 @@ def merge(existing: dict, new: dict, labels: dict, target: str):
         old = existing.get(key)
         if old in (None, ""):
             to_set[key] = value
-        elif str(old) != str(value):
+        elif not _same(old, value):
             diffs.append({"target": target, "field": label, "existing": old, "new": value})
     return to_set, diffs
 
@@ -109,6 +124,14 @@ def choose_event(record: dict, events: list) -> dict:
         to_set, diffs = merge(e, ev, EVENT_LABELS, "이벤트")
         fill, _ = merge(e, ev, EVENT_FILL_ONLY, "이벤트")
         to_set.update(fill)
+        # 특이사항은 덮어쓰지 않고 새 내용만 날짜와 함께 덧붙인다
+        if ev.get("notes"):
+            old = e.get("notes") or ""
+            if not old:
+                to_set["notes"] = ev["notes"]
+            elif ev["notes"] not in old:
+                day = record["consultation"]["consulted_at"][5:10].replace("-", "/")
+                to_set["notes"] = old + "\n[" + day + "] " + ev["notes"]
         # 자동 검색 링크만 있던 곳에 직원이 보낸 정확한 링크가 오면 바꾼다 (사람이 넣은 링크는 그대로)
         new_url, old_url = ev.get("map_url"), e.get("map_url") or ""
         if new_url and old_url.startswith(SEARCH_PREFIX) and not new_url.startswith(SEARCH_PREFIX):

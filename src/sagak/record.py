@@ -13,6 +13,7 @@ from .normalize import mask_numbers, normalize_phone, parse_caption, split_name
 KST = timezone(timedelta(hours=9))
 
 THEMES = ("프로포즈", "생일/기념일", "기타")
+BRANDS = ("예시이벤트", "예시스타일")  # 노션 이벤트 '제휴' = 접수 브랜드
 # 희망 이벤트: 관리 페이지 상품명. 고객 안내용 이름으로 말해도 상품명으로 바꿔 기록한다 (D23).
 # 상품 추가: 여기 PRODUCTS(+ 안내 이름은 PRODUCT_ALIASES), 스킬의 product 목록, Notion 선택지 세 곳을 같이 고친다.
 PRODUCTS = ("갤러리패키지", "호텔패키지", "호텔패키지 프리미엄", "레스토랑패키지", "출장 렌탈")
@@ -183,6 +184,10 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         "desired_at_text": _text(ev.get("desired_at_text")),
         "budget": _int(ev.get("budget")),
         "deposit": _int(ev.get("deposit")),
+        "confirmed_at": _iso(ev.get("confirmed_at")),  # 통화에서 확정한 일시만 (노션 '날짜')
+        "brand": _choice(ev.get("brand"), BRANDS),
+        "notes": mask_numbers(_join([_text(n) for n in (ev.get("notes") or []) if _text(n)]) if isinstance(
+            ev.get("notes"), list) else _text(ev.get("notes"))),
         "request": _join(["접수 표기(괄호): " + name_note if name_note else None, _text(ev.get("request"))]),
     }
     consulted_at = _iso(data.get("consulted_at")) or now.replace(microsecond=0).isoformat()

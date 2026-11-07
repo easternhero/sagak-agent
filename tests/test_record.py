@@ -212,5 +212,21 @@ class VenueTest(unittest.TestCase):
         self.assertIn("예약금", rec["consultation"]["needs_check"])
 
 
+class EventExtrasTest(unittest.TestCase):
+    def test_confirmed_brand_notes(self):
+        data = load("s01")
+        data["event"].update(confirmed_at="2026-12-12T19:00:00", brand="예시이벤트",
+                             notes=["서프라이즈라 여자친구에게 연락 금지", "전날 호텔에 스태프 등록"])
+        ev = build_record(data)["event"]
+        self.assertEqual(ev["confirmed_at"], "2026-12-12T19:00:00+09:00")
+        self.assertEqual(ev["brand"], "예시이벤트")
+        self.assertIn("연락 금지", ev["notes"])
+
+    def test_unknown_brand_dropped(self):
+        data = load("s01")
+        data["event"]["brand"] = "다른브랜드"
+        self.assertIsNone(build_record(data)["event"]["brand"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -281,5 +281,31 @@ class MapLinkSyncTest(unittest.TestCase):
         self.assertEqual(next(iter(store.events.values()))["map_url"], "https://naver.me/exact")
 
 
+class NotesAppendTest(unittest.TestCase):
+    def test_notes_appended_not_overwritten(self):
+        store = MemoryStore()
+        first = build_record(load("s01"))
+        first["event"]["notes"] = "서프라이즈라 연락 금지"
+        apply(first, plan(first, store), store)
+        second = build_record(load("s02"))
+        second["event"]["notes"] = "꽃 알레르기 있음"
+        apply(second, plan(second, store), store)
+        notes = next(iter(store.events.values()))["notes"]
+        self.assertTrue(notes.startswith("서프라이즈라 연락 금지"))
+        self.assertIn("꽃 알레르기 있음", notes)
+        third = build_record(load("s02"))
+        third["event"]["notes"] = "꽃 알레르기 있음"
+        apply(third, plan(third, store), store)
+        self.assertEqual(next(iter(store.events.values()))["notes"].count("꽃 알레르기"), 1)
+
+
+class SameValueTest(unittest.TestCase):
+    def test_notion_datetime_format_is_same(self):
+        from sagak.sync import _same
+        self.assertTrue(_same("2026-12-12T19:00:00.000+09:00", "2026-12-12T19:00:00+09:00"))
+        self.assertTrue(_same("2026-12-12T10:00:00.000Z", "2026-12-12T19:00:00+09:00"))
+        self.assertFalse(_same("2026-12-12T18:00:00+09:00", "2026-12-12T19:00:00+09:00"))
+
+
 if __name__ == "__main__":
     unittest.main()
