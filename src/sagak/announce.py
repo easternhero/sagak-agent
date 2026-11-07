@@ -36,21 +36,22 @@ def unsent(lines: list, last: Optional[str]) -> list:
     return lines[:lines.index(last)] if last in lines else lines
 
 
-def _state_path() -> str:
-    base = os.environ.get("SAGAK_STATE_DIR") or os.path.expanduser("~/.sagak")
-    return os.path.join(base, "announced.json")
+def _state_path(env_path: str) -> str:
+    """보낸 위치 기록. 기본은 프로필 폴더(.env 옆) — 준비 보드 동기화 때 읽을 수 있게."""
+    base = os.environ.get("SAGAK_STATE_DIR") or os.path.dirname(os.path.abspath(env_path))
+    return os.path.join(base, "sagak_announced.json")
 
 
-def load_last() -> Optional[str]:
+def load_last(env_path: str = DEFAULT_ENV) -> Optional[str]:
     try:
-        with open(_state_path(), encoding="utf-8") as f:
+        with open(_state_path(env_path), encoding="utf-8") as f:
             return json.load(f).get("top")
     except (OSError, ValueError):
         return None
 
 
-def save_last(top: str) -> None:
-    path = _state_path()
+def save_last(top: str, env_path: str = DEFAULT_ENV) -> None:
+    path = _state_path(env_path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump({"top": top}, f, ensure_ascii=False)
@@ -117,10 +118,18 @@ def soul_warning(env_path: str) -> Optional[str]:
     return None
 
 
-def announce(dry_run: bool = False, env_path: Optional[str] = None, opener=None, changes: str = CHANGES) -> dict:
+def parse_text(text: str) -> list:
+    """보드에서 편집한 안내(한 줄에 하나, 앞의 '- '·'• '는 있어도 됨)."""
+    return [re.sub(r"^[-•*]\s*", "", l).strip() for l in text.splitlines() if l.strip() and not l.startswith("#")]
+
+
+def announce(dry_run: bool = False, env_path: Optional[str] = None, opener=None, changes: str = CHANGES,
+             text: Optional[str] = None) -> dict:
+    """text를 주면(보드에서 편집한 안내) 그 내용을 보내고, CHANGES.md의 새 줄은 보낸 것으로 표시한다."""
     env_path = env_path or os.environ.get("SAGAK_ENV_FILE") or DEFAULT_ENV
     env = load_env(env_path)
-    lines = unsent(read_lines(changes), load_last())
+    pending_lines = unsent(read_lines(changes), load_last(env_path))
+    lines = parse_text(text) if text is not None else pending_lines
     out = {"lines": lines, "warning": soul_warning(env_path)}
     if not lines:
         return dict(out, sent=0, message="새 안내가 없습니다.")
@@ -137,5 +146,6 @@ def announce(dry_run: bool = False, env_path: Optional[str] = None, opener=None,
         raise AnnounceError("TELEGRAM_BOT_TOKEN이 없습니다.")
     for chat_id, text, buttons in messages:
         send(token, chat_id, text, buttons, opener)
-    save_last(lines[0])
+    if pending_lines:
+        save_last(pending_lines[0], env_path)
     return dict(out, sent=len(messages))

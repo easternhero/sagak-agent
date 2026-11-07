@@ -6,8 +6,9 @@
                                            '고객 확인 필요' 상담을 같은 고객/별도 고객으로 연결
   python3 -m sagak transcribe <녹음 파일>     녹음을 구간 시간이 있는 전사로 (lines: "[mm:ss] 화자: 내용")
   python3 -m sagak ping                      Notion 키와 DB 접근 확인
-  python3 -m sagak announce [--dry-run] [--env <.env 경로>]
+  python3 -m sagak announce [--dry-run] [--env <.env 경로>] [--stdin]
                                            agent/CHANGES.md 새 안내를 텔레그램으로 보내고 [/new] 버튼 띄우기 (맥에서)
+                                           --stdin: 준비 보드에서 편집한 안내를 표준입력으로 받아 보냄
 
 종료 코드: 0 성공, 2 입력 문제(다시 요청할 것), 1 그 밖의 오류
 """
@@ -85,7 +86,8 @@ def main(argv=None) -> int:
             _print({"ok": True, "databases": NotionStore.from_env().ping()})
             return 0
         if cmd == "announce":
-            _print({"ok": True, **announce(dry_run="--dry-run" in argv, env_path=_option(argv, "--env"))})
+            text = sys.stdin.read() if "--stdin" in argv else None
+            _print({"ok": True, **announce(dry_run="--dry-run" in argv, env_path=_option(argv, "--env"), text=text)})
             return 0
         if cmd == "transcribe":
             _print({"ok": True, **transcribe(argv[1])})

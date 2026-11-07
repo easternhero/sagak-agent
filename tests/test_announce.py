@@ -72,6 +72,14 @@ class AnnounceTest(unittest.TestCase):
         self.assertEqual(len(out["preview"]), 2)
         self.assertEqual(self.run_announce()["sent"], 2)
 
+    def test_edited_text_sent_and_changes_marked(self):
+        out = self.run_announce(text="- 고친 안내 하나\n• 고친 안내 둘 [restart]\n")
+        self.assertEqual(out["lines"], ["고친 안내 하나", "고친 안내 둘 [restart]"])
+        self.assertIn("고친 안내 하나", self.sent[0]["text"])
+        self.assertEqual(self.sent[0]["reply_markup"]["keyboard"][0], [{"text": "/restart"}])
+        self.sent.clear()
+        self.assertEqual(self.run_announce()["sent"], 0)  # CHANGES의 새 줄은 보낸 것으로 처리됨
+
     def test_repo_changes_file_parses(self):
         self.assertTrue(an.read_lines())
 
