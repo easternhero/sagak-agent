@@ -42,19 +42,37 @@ def _state_path(env_path: str) -> str:
     return os.path.join(base, "sagak_announced.json")
 
 
-def load_last(env_path: str = DEFAULT_ENV) -> Optional[str]:
+AUDIENCES = ("admin", "others")  # 관리자 / 나머지 직원 — 보낸 위치를 따로 기록한다
+
+
+def _load_state(env_path: str) -> dict:
     try:
         with open(_state_path(env_path), encoding="utf-8") as f:
-            return json.load(f).get("top")
+            data = json.load(f)
     except (OSError, ValueError):
-        return None
+        return {}
+    if "top" in data:  # 예전 형식: 모두에게 보낸 위치 하나
+        return {a: data["top"] for a in AUDIENCES}
+    return data
 
 
-def save_last(top: str, env_path: str = DEFAULT_ENV) -> None:
+def load_last(env_path: str = DEFAULT_ENV, audience: str = "others") -> Optional[str]:
+    return _load_state(env_path).get(audience)
+
+
+def save_last(top: str, env_path: str = DEFAULT_ENV, audiences=AUDIENCES) -> None:
+    state = _load_state(env_path)
+    state.update({a: top for a in audiences})
     path = _state_path(env_path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
-        json.dump({"top": top}, f, ensure_ascii=False)
+        json.dump(state, f, ensure_ascii=False)
+
+
+def pending_for(env_path: str, changes: str = CHANGES) -> dict:
+    """받는 쪽별로 아직 안 보낸 안내."""
+    lines = read_lines(changes)
+    return {a: unsent(lines, load_last(env_path, a)) for a in AUDIENCES}
 
 
 def load_env(path: str) -> dict:
@@ -124,11 +142,16 @@ def parse_text(text: str) -> list:
 
 
 def announce(dry_run: bool = False, env_path: Optional[str] = None, opener=None, changes: str = CHANGES,
-             text: Optional[str] = None) -> dict:
-    """text를 주면(보드에서 편집한 안내) 그 내용을 보내고, CHANGES.md의 새 줄은 보낸 것으로 표시한다."""
+             text: Optional[str] = None, to: str = "all") -> dict:
+    """to: admin(관리자만) | others(나머지 직원만) | all.
+    text를 주면(편집한 안내) 그 내용을 보내고, CHANGES.md의 새 줄은 받은 쪽에 보낸 것으로 표시한다."""
+    if to not in ("admin", "others", "all"):
+        raise AnnounceError("받는 쪽은 admin, others, all 중 하나입니다.")
     env_path = env_path or os.environ.get("SAGAK_ENV_FILE") or DEFAULT_ENV
     env = load_env(env_path)
-    pending_lines = unsent(read_lines(changes), load_last(env_path))
+    audiences = AUDIENCES if to == "all" else (to,)
+    pend = pending_for(env_path, changes)
+    pending_lines = max((pend[a] for a in audiences), key=len)
     lines = parse_text(text) if text is not None else pending_lines
     out = {"lines": lines, "warning": soul_warning(env_path)}
     if not lines:
@@ -137,7 +160,10 @@ def announce(dry_run: bool = False, env_path: Optional[str] = None, opener=None,
     if not users:
         raise AnnounceError("TELEGRAM_ALLOWED_USERS가 비어 있습니다.")
     admin = env.get("SAGAK_TELEGRAM_ADMIN") or users[0]
-    messages = build_messages(lines, users, admin)
+    targets = [u for u in users if (to == "all") or ((u == admin) == (to == "admin"))]
+    if not targets:
+        raise AnnounceError("보낼 사람이 없습니다.")
+    messages = build_messages(lines, targets, admin)
     if dry_run:
         return dict(out, sent=0, dry_run=True, preview=[{"to": "관리자" if m[0] == admin else "사용자", "text": m[1],
                                                          "buttons": m[2]} for m in messages])
@@ -147,5 +173,5 @@ def announce(dry_run: bool = False, env_path: Optional[str] = None, opener=None,
     for chat_id, text, buttons in messages:
         send(token, chat_id, text, buttons, opener)
     if pending_lines:
-        save_last(pending_lines[0], env_path)
-    return dict(out, sent=len(messages))
+        save_last(pending_lines[0], env_path, audiences)
+    return dict(out, sent=len(messages), to=to)

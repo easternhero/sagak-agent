@@ -56,6 +56,8 @@ class ConsoleTest(unittest.TestCase):
         data = json.loads(body)
         self.assertEqual(data["users"], 2)
         self.assertTrue(data["lines"])  # 레포 CHANGES.md의 안 보낸 줄
+        self.assertIn("admin", data)
+        self.assertIn("others", data)
 
     def test_send_requires_token(self):
         self.assertEqual(self.req("/api/send", {"text": "- 안내"}, token="bad")[0], 403)
@@ -67,9 +69,10 @@ class ConsoleTest(unittest.TestCase):
     def test_send_and_dry_run(self):
         code, body = self.req("/api/send", {"text": "- 안내", "dry_run": True})
         self.assertEqual(json.loads(body)["sent"], 0)
-        code, body = self.req("/api/send", {"text": "- 안내"})
+        code, body = self.req("/api/send", {"text": "- 안내", "to": "admin"})
         self.assertEqual(json.loads(body)["sent"], 2)
         self.assertEqual([c["dry_run"] for c in self.calls], [True, False])
+        self.assertEqual(self.calls[1]["to"], "admin")
         self.assertEqual(self.calls[1]["text"], "- 안내")
 
 

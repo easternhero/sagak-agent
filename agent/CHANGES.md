@@ -4,7 +4,7 @@
 봇 전체 재시작이 필요한 변경(설정·키)은 줄 끝에 `[restart]`를 붙인다 → 관리자에게만 [/restart] 버튼.
 
 보내기 (맥에서): `PYTHONPATH=src python3 -m sagak announce` (미리 보기: `--dry-run`)
-화면으로 보내기 (맥에서): `PYTHONPATH=src python3 -m sagak console` → 브라우저에서 문구 확인·편집 후 [보내기]. 보낸 위치는 프로필 폴더 `sagak_announced.json`.
+화면으로 보내기 (맥에서): `PYTHONPATH=src python3 -m sagak console` → 브라우저에서 문구 확인·편집 후 ① 관리자에게 보내 확인 → ② 직원에게 보내기. 명령으로는 `announce --to admin`, `announce --to others`. 보낸 위치는 프로필 폴더 `sagak_announced.json`.
 
 ## 2026-11-07
 - 연달아 보낸 파일·녹음을 중간에 끊지 않고 차례로 처리해요 [restart]

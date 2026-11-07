@@ -33,35 +33,43 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
 .msg{display:flex;flex-direction:column;gap:6px}.status{font-size:14px;padding:10px 12px;border-radius:8px;background:var(--surface-2)}.status.ok{color:var(--ok)}.status.bad{color:var(--bad)}
 </style></head><body><div class="wrap">
 <h1>사각사각 안내 보내기</h1>
-<p class="lede">봇이 바뀐 점을 직원들에게 알리고 [/new] 버튼을 띄웁니다. 줄 끝에 [restart]가 있으면 관리자에게만 [/restart] 버튼이 갑니다. 이 화면은 이 맥에서만 열립니다.</p>
+<p class="lede">봇이 바뀐 점을 알리고 [/new] 버튼을 띄웁니다. ① 관리자에게 먼저 보내 [/restart]·[/new]로 잘 되는지 확인한 뒤 ② 직원에게 보내세요. 줄 끝에 [restart]가 있으면 관리자에게만 [/restart] 버튼이 갑니다. 이 화면은 이 맥에서만 열립니다.</p>
 <div class="grid">
  <div class="card"><h2>안내 문구</h2><p class="muted" id="meta"></p>
   <textarea id="text" aria-label="안내 문구, 한 줄에 하나"></textarea>
-  <div class="actions"><button class="primary" id="send">보내기</button><button id="dry">미리 보기(발송 안 함)</button><button id="reload">다시 불러오기</button></div>
+  <div class="actions"><button class="primary" id="send-admin">① 관리자에게 보내기</button><button class="primary" id="send-others">② 직원에게 보내기</button></div>
+  <div class="actions"><button id="dry">미리 보기(발송 안 함)</button><button id="reload">다시 불러오기</button></div>
+  <p class="muted" id="flow"></p>
   <div class="status" id="status" hidden></div></div>
  <div class="card"><h2>텔레그램에 보이는 모습</h2><div id="preview" class="msg"></div></div>
 </div></div>
 <script>
-const TOKEN="__TOKEN__";const $=id=>document.getElementById(id);const RESTART="[restart]";let armed=false,info={};
+const TOKEN="__TOKEN__";const $=id=>document.getElementById(id);const RESTART="[restart]";let armed=null,info={};
 const lines=t=>t.split("\n").map(l=>l.replace(/^\s*[-•*]\s*/,"").trim()).filter(l=>l&&!l.startsWith("#"));
 function preview(){const ls=lines($("text").value),box=$("preview");box.replaceChildren();
  if(!ls.length){box.textContent="보낼 안내가 없어요.";return}
  const restart=ls.some(l=>l.includes(RESTART));const head="🆕 사각사각 봇이 바뀌었어요\n\n"+ls.map(l=>"• "+l.replace(RESTART,"").trim()).join("\n")+"\n\n";
  const tail=" 진행 중인 확인(같은 고객인가요? 등)이 있으면 끝낸 뒤 눌러 주세요.";
- const n=info.users||0;const ms=[{who:restart?"나머지 "+Math.max(n-1,0)+"명":"직원 "+n+"명",text:head+"아래 [/new] 버튼을 누르면 적용돼요."+tail,keys:["/new"]}];
- if(restart)ms.unshift({who:"관리자에게는 대신",text:head+"봇 전체 재시작이 필요해요. [/restart]를 먼저 누르고, 재시작 뒤 [/new]를 눌러 주세요."+tail,keys:["/restart","/new"]});
+ const n=info.users||0;const ms=[{who:"② 직원 "+Math.max(n-1,0)+"명"+(restart?"":" (① 관리자도 같은 내용)"),text:head+"아래 [/new] 버튼을 누르면 적용돼요."+tail,keys:["/new"]}];
+ if(restart)ms.unshift({who:"① 관리자",text:head+"봇 전체 재시작이 필요해요. [/restart]를 먼저 누르고, 재시작 뒤 [/new]를 눌러 주세요."+tail,keys:["/restart","/new"]});
  ms.forEach(m=>{const d=document.createElement("div");d.className="msg";const w=document.createElement("div");w.className="who";w.textContent=m.who;const b=document.createElement("div");b.className="bubble";b.textContent=m.text;d.append(w,b);m.keys.forEach(k=>{const e=document.createElement("div");e.className="key";e.textContent=k;d.append(e)});box.append(d)});disarm()}
 function status(t,c){const s=$("status");s.hidden=false;s.className="status "+(c||"");s.textContent=t}
-function disarm(){armed=false;$("send").textContent="보내기";$("send").className="primary"}
+const LABEL={admin:"① 관리자에게 보내기",others:"② 직원에게 보내기"};
+function disarm(){armed=null;["admin","others"].forEach(a=>{$("send-"+a).textContent=LABEL[a];$("send-"+a).className="primary"})}
 async function api(path,body){const r=await fetch(path,{method:body?"POST":"GET",headers:{"X-Sagak-Token":TOKEN,"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});return r.json()}
 async function load(){try{info=await api("/api/state");$("text").value=info.lines.map(l=>"- "+l).join("\n");
  $("meta").textContent=info.lines.length?"아직 안 보낸 안내 "+info.lines.length+"줄 (agent/CHANGES.md)":"새 안내가 없어요. 직접 적어서 보낼 수도 있어요.";
+ $("flow").textContent="관리자: "+(info.admin.length?"안 보낸 안내 "+info.admin.length+"줄":"모두 보냄")+" · 직원: "+(info.others.length?"안 보낸 안내 "+info.others.length+"줄":"모두 보냄");
  if(info.warning)status(info.warning,"bad");else $("status").hidden=true;preview()}catch(e){status("불러오지 못했어요: "+e,"bad")}}
 $("text").addEventListener("input",preview);$("reload").onclick=load;
 $("dry").onclick=async()=>{const r=await api("/api/send",{text:$("text").value,dry_run:true});status(r.ok?"미리 보기 확인: "+(r.preview||[]).length+"명에게 갈 예정 (보내지 않음)":"실패: "+r.message,r.ok?"ok":"bad")};
-$("send").onclick=async()=>{if(!lines($("text").value).length){status("보낼 안내가 없어요.","bad");return}
- if(!armed){armed=true;$("send").textContent="정말 보내기 ("+(info.users||"?")+"명)";$("send").className="danger";return}
- $("send").disabled=true;try{const r=await api("/api/send",{text:$("text").value});status(r.ok?r.sent+"명에게 보냈어요.":"실패: "+r.message,r.ok?"ok":"bad");if(r.ok)await load()}finally{$("send").disabled=false;disarm()}};
+["admin","others"].forEach(to=>{$("send-"+to).onclick=async()=>{if(!lines($("text").value).length){status("보낼 안내가 없어요.","bad");return}
+ const n=to==="admin"?1:Math.max((info.users||1)-1,0);
+ if(armed!==to){disarm();armed=to;const early=to==="others"&&info.admin.length>0;
+  $("send-"+to).textContent=early?"관리자 확인 전이에요. 그래도 보내기 ("+n+"명)":"정말 보내기 ("+n+"명)";$("send-"+to).className="danger";return}
+ $("send-"+to).disabled=true;try{const r=await api("/api/send",{text:$("text").value,to});
+  status(r.ok?(to==="admin"?"관리자에게 보냈어요. 텔레그램에서 [/restart]·[/new]를 눌러 확인한 뒤 ② 직원에게 보내세요.":r.sent+"명의 직원에게 보냈어요."):"실패: "+r.message,r.ok?"ok":"bad");
+  if(r.ok){const t=$("text").value;await load();$("text").value=t;preview()}}finally{$("send-"+to).disabled=false;disarm()}}});
 load();
 </script></body></html>"""
 
@@ -70,8 +78,9 @@ def state(env_path: Optional[str] = None) -> dict:
     env_path = env_path or an.DEFAULT_ENV
     env = an.load_env(env_path)
     users = [u for u in env.get("TELEGRAM_ALLOWED_USERS", "").split(",") if u.strip()]
-    return {"ok": True, "lines": an.unsent(an.read_lines(), an.load_last(env_path)),
-            "users": len(users), "warning": an.soul_warning(env_path)}
+    pend = an.pending_for(env_path)
+    return {"ok": True, "admin": pend["admin"], "others": pend["others"],
+            "lines": pend["admin"] or pend["others"], "users": len(users), "warning": an.soul_warning(env_path)}
 
 
 def make_handler(token: str, port: int, env_path: Optional[str] = None, send=an.announce):
@@ -110,7 +119,8 @@ def make_handler(token: str, port: int, env_path: Optional[str] = None, send=an.
                 return self._json({"ok": False, "message": "허용되지 않은 요청"}, 403)
             try:
                 body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
-                out = send(dry_run=bool(body.get("dry_run")), env_path=env_path, text=str(body.get("text") or ""))
+                out = send(dry_run=bool(body.get("dry_run")), env_path=env_path, text=str(body.get("text") or ""),
+                           to=str(body.get("to") or "all"))
                 return self._json({"ok": True, **out})
             except (an.AnnounceError, ValueError, OSError) as e:
                 return self._json({"ok": False, "message": str(e)})

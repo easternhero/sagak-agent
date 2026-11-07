@@ -80,6 +80,21 @@ class AnnounceTest(unittest.TestCase):
         self.sent.clear()
         self.assertEqual(self.run_announce()["sent"], 0)  # CHANGES의 새 줄은 보낸 것으로 처리됨
 
+    def test_admin_first_then_others(self):
+        out = self.run_announce(to="admin")
+        self.assertEqual([m["chat_id"] for m in self.sent], ["111"])
+        self.assertEqual(an.pending_for(self.env, self.changes),
+                         {"admin": [], "others": ["새 기능 B", "새 기능 A"]})
+        self.sent.clear()
+        self.run_announce(to="others")
+        self.assertEqual([m["chat_id"] for m in self.sent], ["222"])
+        self.assertEqual(an.pending_for(self.env, self.changes), {"admin": [], "others": []})
+
+    def test_old_state_format_counts_for_both(self):
+        with open(os.path.join(self.dir.name, "sagak_announced.json"), "w", encoding="utf-8") as f:
+            json.dump({"top": "새 기능 A"}, f, ensure_ascii=False)
+        self.assertEqual(an.pending_for(self.env, self.changes), {"admin": ["새 기능 B"], "others": ["새 기능 B"]})
+
     def test_repo_changes_file_parses(self):
         self.assertTrue(an.read_lines())
 

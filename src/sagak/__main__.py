@@ -6,7 +6,7 @@
                                            '고객 확인 필요' 상담을 같은 고객/별도 고객으로 연결
   python3 -m sagak transcribe <녹음 파일>     녹음을 구간 시간이 있는 전사로 (lines: "[mm:ss] 화자: 내용")
   python3 -m sagak ping                      Notion 키와 DB 접근 확인
-  python3 -m sagak announce [--dry-run] [--env <.env 경로>] [--stdin]
+  python3 -m sagak announce [--to admin|others] [--dry-run] [--env <.env 경로>] [--stdin]
                                            agent/CHANGES.md 새 안내를 텔레그램으로 보내고 [/new] 버튼 띄우기 (맥에서)
                                            --stdin: 편집한 안내를 표준입력으로 받아 보냄
   python3 -m sagak console [--port 8765]     맥에서 안내 보내기 화면 띄우기 (미리 보기·편집·보내기)
@@ -92,7 +92,8 @@ def main(argv=None) -> int:
             return 0
         if cmd == "announce":
             text = sys.stdin.read() if "--stdin" in argv else None
-            _print({"ok": True, **announce(dry_run="--dry-run" in argv, env_path=_option(argv, "--env"), text=text)})
+            _print({"ok": True, **announce(dry_run="--dry-run" in argv, env_path=_option(argv, "--env"), text=text,
+                                             to=_option(argv, "--to") or "all")})
             return 0
         if cmd == "transcribe":
             _print({"ok": True, **transcribe(argv[1])})
