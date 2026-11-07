@@ -56,7 +56,7 @@ required_environment_variables:
   "customer": {"customer_type": "개인 | 기업", "company": "회사·단체명 | null"},
   "event": {
     "theme": "프로포즈 | 생일/기념일 | 기타",
-    "product": "갤러리패키지 | 호텔패키지 | 레스토랑패키지 | 출장 렌탈 | 소극장패키지 | null",
+    "product": "갤러리패키지 | 호텔패키지 | 레스토랑패키지 | 출장 렌탈 | null",
     "venue": "희망 장소 | null",
     "desired_at": "YYYY-MM-DDTHH:MM:SS (날짜와 시각이 모두 분명할 때만) | null",
     "desired_at_text": "말한 그대로 (예: 12월 12일 저녁)",
