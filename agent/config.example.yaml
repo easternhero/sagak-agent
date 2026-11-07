@@ -51,3 +51,7 @@ platforms:
     enabled: true
 approvals:
   destructive_slash_confirm: false
+
+# 처리 중에 온 메시지는 끊지 말고 차례로 처리 (파일+녹음 연속 전송 대비)
+display:
+  busy_input_mode: queue

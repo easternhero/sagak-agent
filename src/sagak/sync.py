@@ -124,7 +124,11 @@ def _new_event(ev: dict, co: dict) -> dict:
 
 def event_title(name: str, ev: dict) -> str:
     when = ev.get("desired_at")
-    when = "{}/{}".format(int(when[5:7]), int(when[8:10])) if when else (ev.get("desired_at_text") or "일정 미정")
+    if when:
+        when = "{}/{}".format(int(when[5:7]), int(when[8:10]))
+    else:  # 짧은 원문만 제목에 쓰고, 긴 원문은 '희망 일시(원문)'에만 남긴다
+        text = (ev.get("desired_at_text") or "").strip()
+        when = text if text and len(text) <= 12 else "일정 미정"
     return "{} · {} · {}".format(name, ev.get("theme") or "테마 미정", when)
 
 

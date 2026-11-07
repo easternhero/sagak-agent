@@ -258,5 +258,12 @@ class ConsultantTest(unittest.TestCase):
         self.assertEqual(list(store.consultations.values())[0]["consultant"], "박서준")
 
 
+class EventTitleTest(unittest.TestCase):
+    def test_long_raw_date_not_in_title(self):
+        from sagak.sync import event_title
+        ev = {"theme": "프로포즈", "desired_at": None, "desired_at_text": "아마 8일 정도 / 11월 8일이면 다음 주 일요일"}
+        self.assertEqual(event_title("홍길동", ev), "홍길동 · 프로포즈 · 일정 미정")
+
+
 if __name__ == "__main__":
     unittest.main()
