@@ -138,5 +138,15 @@ class SyncTest(unittest.TestCase):
         self.assertEqual(event["title"], "이지은 · 기타 · 12/19")
 
 
+
+class FreeTextTest(unittest.TestCase):
+    def test_request_text_is_not_reported_as_diff(self):
+        store = MemoryStore()
+        run(store, "s01")
+        out = run(store, "s02", lambda d: d["event"].update(request="빔프로젝터 추가 문의"))
+        self.assertNotIn("문의 및 신청사항", [x["field"] for x in out["diffs"]])
+        self.assertEqual(next(iter(store.events.values()))["request"], "실내 장소, 꽃 장식, 영상 상영")
+
+
 if __name__ == "__main__":
     unittest.main()

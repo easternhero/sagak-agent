@@ -21,10 +21,10 @@ EVENT_LABELS = {
     "product": "희망 이벤트",
     "venue": "희망 장소",
     "desired_at": "희망 일시",
-    "desired_at_text": "희망 일시(원문)",
     "budget": "예상 금액",
-    "request": "문의 및 신청사항",
 }
+# 서술형 항목은 비어 있을 때만 채우고, 다르더라도 차이로 표시하지 않는다 (상담 내역에 이미 남음)
+EVENT_FILL_ONLY = {"desired_at_text": "희망 일시(원문)", "request": "문의 및 신청사항"}
 
 
 def merge(existing: dict, new: dict, labels: dict, target: str):
@@ -72,6 +72,8 @@ def plan(record: dict, store) -> dict:
         if len(events) == 1:
             e = events[0]
             to_set, diffs = merge(e, ev, EVENT_LABELS, "이벤트")
+            fill, _ = merge(e, ev, EVENT_FILL_ONLY, "이벤트")
+            to_set.update(fill)
             result["event"] = {"action": "link", "id": e["id"], "url": e.get("url"), "set": to_set}
             result["diffs"].extend(diffs)
             round_no = int(e.get("consult_count") or 0) + 1

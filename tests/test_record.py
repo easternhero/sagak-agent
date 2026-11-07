@@ -66,5 +66,16 @@ class RecordTest(unittest.TestCase):
         self.assertEqual(r["consultation"]["next_contact"], "미정")
 
 
+
+class CheckLabelTest(unittest.TestCase):
+    def test_unknown_labels_become_questions(self):
+        data = load("s02")
+        data["consultation"]["needs_check"] = ["예산", "빔프로젝터 추가 확정 여부"]
+        r = build_record(data)
+        self.assertNotIn("빔프로젝터 추가 확정 여부", r["consultation"]["needs_check"])
+        self.assertIn("빔프로젝터 추가 확정 여부 확인 필요", r["consultation"]["questions"])
+        self.assertIn("예산", r["consultation"]["needs_check"])
+
+
 if __name__ == "__main__":
     unittest.main()

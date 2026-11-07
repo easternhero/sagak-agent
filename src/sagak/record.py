@@ -15,6 +15,8 @@ THEMES = ("프로포즈", "생일/기념일", "기타")
 PRODUCTS = ("호텔패키지", "갤러리패키지", "레스토랑패키지", "소극장패키지")
 CUSTOMER_TYPES = ("개인", "기업")
 INPUT_TYPES = ("녹음", "전사 텍스트")
+# Notion '확인 필요' 태그로 쓰는 고정 목록. 그 밖의 항목은 '추가 질문'으로 옮긴다 (태그가 끝없이 늘지 않게).
+CHECK_LABELS = ("희망 일시", "희망 장소", "예산", "이벤트 테마", "다음 연락 시점", "고객 연결", "이벤트 연결", "기존 정보와 다름")
 
 
 class InputError(Exception):
@@ -85,7 +87,18 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
     }
 
     ev = data.get("event") or {}
-    needs_check = [x for x in (data.get("consultation") or {}).get("needs_check") or [] if _text(x)]
+    co = data.get("consultation") or {}
+    questions = [q for q in (co.get("questions") or []) if _text(q)]
+    needs_check = []
+    for item in co.get("needs_check") or []:
+        label = _text(item)
+        if not label:
+            continue
+        if label in CHECK_LABELS:
+            if label not in needs_check:
+                needs_check.append(label)
+        elif not any(label in q for q in questions):
+            questions.append(label + " 확인 필요")
 
     def flag(label: str) -> None:
         if label not in needs_check:
@@ -110,14 +123,13 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
     if event["venue"] is None:
         flag("희망 장소")
 
-    co = data.get("consultation") or {}
     consultation = {
         "summary": _text(co.get("summary")),
         "options": _text(co.get("options")),
         "option_price": _int(co.get("option_price")),
         "follow_up": _text(co.get("follow_up")),
         "next_contact": _text(co.get("next_contact")) or "미정",
-        "questions": [q for q in (co.get("questions") or []) if _text(q)],
+        "questions": questions,
         "consultant": _text(data.get("consultant")),
         "consulted_at": _iso(data.get("consulted_at")) or now.replace(microsecond=0).isoformat(),
         "input_type": _choice(data.get("input_type"), INPUT_TYPES) or "전사 텍스트",
