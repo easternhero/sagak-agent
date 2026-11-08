@@ -49,6 +49,18 @@ telemetry:
 platforms:
   telegram:
     enabled: true
+    extra:
+      # 관리자만 모든 명령. 직원은 아래 명령 + /help·/whoami만 (Hermes 기본 허용) (D49)
+      allow_admin_from:
+        - "<관리자 텔레그램 ID>"
+      user_allowed_commands:
+        - new
+        - stop
+      # 텔레그램 / 메뉴에는 꼭 필요한 것만 (다른 명령도 관리자는 입력하면 동작)
+      command_menu:
+        priority_mode: replace
+        priority: [new, stop, help]
+        max_commands: 3
 approvals:
   destructive_slash_confirm: false
 
