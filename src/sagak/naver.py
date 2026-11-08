@@ -72,7 +72,14 @@ def confirmed_search_link(venue: str, opener=None, env=None) -> Optional[str]:
     same = [i for i in items if _key(i.get("title")) == v]
     if not same:
         same = [i for i in items if v in _key(i.get("title")) or (len(_key(i.get("title"))) >= 2 and _key(i.get("title")) in v)]
-    if len(same) != 1:
+    if len(same) > 1:
+        # 이름 후보가 여럿이어도 모두 같은 건물(같은 도로명 주소)이면 위치는 확실하다 (예: 호텔 안 식당들)
+        addrs = {_key(i.get("roadAddress") or i.get("address")) for i in same}
+        if len(addrs) == 1 and "" not in addrs:
+            addr = same[0].get("roadAddress") or same[0].get("address")
+            return naver_search_url("{} {}".format(venue, addr).strip())
+        return None
+    if not same:
         return None
     place = same[0]
     title = re.sub(r"</?b>", "", place.get("title") or "")
