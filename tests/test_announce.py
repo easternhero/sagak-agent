@@ -101,3 +101,27 @@ class AnnounceTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NotifyTest(unittest.TestCase):
+    def test_notify_others_plain(self):
+        import json as _j
+        from sagak import announce as A
+        sent = []
+
+        class R:
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def read(self): return b'{"ok": true}'
+
+        def op(req, timeout=None):
+            sent.append(_j.loads(req.data))
+            return R()
+        with tempfile.TemporaryDirectory() as d:
+            env = os.path.join(d, ".env")
+            with open(env, "w") as f:
+                f.write("TELEGRAM_BOT_TOKEN=t\nTELEGRAM_ALLOWED_USERS=1,2,3\n")
+            out = A.notify("링크 부탁드려요", to="others", env_path=env, opener=op)
+        self.assertEqual(out["sent"], 2)
+        self.assertEqual([m["chat_id"] for m in sent], ["2", "3"])
+        self.assertNotIn("reply_markup", sent[0])

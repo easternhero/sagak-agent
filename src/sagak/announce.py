@@ -108,9 +108,10 @@ def build_messages(lines: list, users: list, admin: str) -> list:
 
 
 def send(token: str, chat_id: str, text: str, buttons: list, opener=None) -> None:
-    body = {"chat_id": chat_id, "text": text,
-            "reply_markup": {"keyboard": [[{"text": b}] for b in buttons],
-                             "one_time_keyboard": True, "resize_keyboard": True}}
+    body = {"chat_id": chat_id, "text": text}
+    if buttons:
+        body["reply_markup"] = {"keyboard": [[{"text": b}] for b in buttons],
+                                "one_time_keyboard": True, "resize_keyboard": True}
     req = urllib.request.Request("https://api.telegram.org/bot{}/sendMessage".format(token),
                                  data=json.dumps(body).encode("utf-8"),
                                  headers={"Content-Type": "application/json"}, method="POST")
@@ -175,3 +176,28 @@ def announce(dry_run: bool = False, env_path: Optional[str] = None, opener=None,
     if pending_lines:
         save_last(pending_lines[0], env_path, audiences)
     return dict(out, sent=len(messages), to=to)
+
+
+def notify(text: str, to: str = "others", dry_run: bool = False, env_path: Optional[str] = None, opener=None) -> dict:
+    """변경 안내가 아닌 요청·공지를 그대로 보낸다. 머리말·버튼 없음, 변경 안내 보낸 기록은 건드리지 않는다."""
+    if to not in ("admin", "others", "all"):
+        raise AnnounceError("받는 쪽은 admin, others, all 중 하나입니다.")
+    text = (text or "").strip()
+    if not text:
+        raise AnnounceError("보낼 내용이 없습니다.")
+    env = load_env(env_path or os.environ.get("SAGAK_ENV_FILE") or DEFAULT_ENV)
+    users = [u.strip() for u in env.get("TELEGRAM_ALLOWED_USERS", "").split(",") if u.strip()]
+    if not users:
+        raise AnnounceError("TELEGRAM_ALLOWED_USERS가 비어 있습니다.")
+    admin = env.get("SAGAK_TELEGRAM_ADMIN") or users[0]
+    targets = [u for u in users if to == "all" or ((u == admin) == (to == "admin"))]
+    if not targets:
+        raise AnnounceError("보낼 사람이 없습니다.")
+    if dry_run:
+        return {"sent": 0, "dry_run": True, "to": to, "count": len(targets), "text": text}
+    token = env.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        raise AnnounceError("TELEGRAM_BOT_TOKEN이 없습니다.")
+    for chat_id in targets:
+        send(token, chat_id, text, [], opener)
+    return {"sent": len(targets), "to": to}

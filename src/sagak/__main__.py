@@ -14,6 +14,8 @@
   python3 -m sagak announce [--to admin|others] [--dry-run] [--env <.env 경로>] [--stdin]
                                            agent/CHANGES.md 새 안내를 텔레그램으로 보내고 [/new] 버튼 띄우기 (개발자 PC에서)
                                            --stdin: 편집한 안내를 표준입력으로 받아 보냄
+  python3 -m sagak notify [--to others|admin|all] [--dry-run] < 문구.txt
+                                           요청·공지를 그대로 보내기 (머리말·버튼 없음, 변경 안내 기록과 무관)
   python3 -m sagak console [--port 8765]     개발자 PC에서 안내 보내기 화면 띄우기 (미리 보기·편집·보내기)
 
 종료 코드: 0 성공, 2 입력 문제(다시 요청할 것), 1 그 밖의 오류
@@ -96,8 +98,8 @@ def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     cmd = argv[0] if argv else None
     if cmd not in ("check", "record", "resolve", "transcribe", "ping", "announce", "console", "products",
-                   "history", "sweep", "cleanup-test", "recheck-maps") or (
-            cmd not in ("ping", "announce", "console", "products", "sweep", "cleanup-test", "recheck-maps")
+                   "history", "sweep", "cleanup-test", "recheck-maps", "notify") or (
+            cmd not in ("ping", "announce", "console", "products", "sweep", "cleanup-test", "recheck-maps", "notify")
             and len(argv) < 2):
         print(__doc__)
         return 1
@@ -122,6 +124,11 @@ def main(argv=None) -> int:
             text = sys.stdin.read() if "--stdin" in argv else None
             _print({"ok": True, **announce(dry_run="--dry-run" in argv, env_path=_option(argv, "--env"), text=text,
                                              to=_option(argv, "--to") or "all")})
+            return 0
+        if cmd == "notify":
+            from .announce import notify
+            _print({"ok": True, **notify(sys.stdin.read(), to=_option(argv, "--to") or "others",
+                                         dry_run="--dry-run" in argv, env_path=_option(argv, "--env"))})
             return 0
         if cmd == "transcribe":
             from .transcribe import save_result
