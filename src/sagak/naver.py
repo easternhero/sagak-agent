@@ -168,3 +168,23 @@ def recheck(store, dry_run: bool = False, opener=None, env=None) -> list:
                 store.set_map_url(e["id"], new)
         out.append(item)
     return out
+
+
+def apply_product_link(store, product: str, url: str, opener=None) -> dict:
+    """상품의 네이버 장소 링크를 노션 '상품'에 넣고, 그 상품의 진행 중 이벤트(지도 링크가 비었거나
+    자동 검색 링크인 것)에도 단다. 사람이 넣은 다른 링크는 그대로 둔다 (D55)."""
+    if not staff_link_ok(url, opener):
+        return {"ok": False, "error": "LINK_FAILED", "message": "링크가 네이버 장소 페이지로 열리지 않아요."}
+    page = store.set_product_map(product, url)
+    if not page:
+        return {"ok": False, "error": "NO_PRODUCT", "message": "노션 '상품'에 이 상품명이 없어요: " + product}
+    changed = []
+    for e in store.all_events():
+        if e.get("product") != product or e.get("status") in ("이벤트취소", "이벤트완료"):
+            continue
+        old = e.get("map_url") or ""
+        if old and not old.startswith(SEARCH_PREFIX):
+            continue
+        store.set_map_url(e["id"], url)
+        changed.append({"title": e.get("title"), "url": e.get("url")})
+    return {"ok": True, "product": product, "product_page": page, "events": changed}

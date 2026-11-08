@@ -282,6 +282,19 @@ class NotionStore:
                          "venue": from_property(props["장소"]) if "장소" in props else None}
         return out
 
+    def set_product_map(self, product: str, url: str) -> Optional[str]:
+        """노션 '상품' DB에서 상품명이 같은 줄의 '네이버 지도'를 바꾼다. 바꾼 페이지 URL, 없으면 None (D55)."""
+        db = os.environ.get("SAGAK_NOTION_PRODUCTS_DB")
+        if not db:
+            raise NotionError("환경변수 없음: SAGAK_NOTION_PRODUCTS_DB")
+        res = self._request("POST", "/databases/{}/query".format(db),
+                            {"filter": {"property": "상품명", "title": {"equals": product}}})
+        pages = res.get("results", [])
+        if not pages:
+            return None
+        self._request("PATCH", "/pages/{}".format(pages[0]["id"]), {"properties": {"네이버 지도": {"url": url}}})
+        return pages[0].get("url")
+
     def set_map_url(self, page_id: str, url: Optional[str]) -> None:
         """지도 링크를 바꾸거나 비운다(None)."""
         self._request("PATCH", "/pages/{}".format(page_id), {"properties": {"지도 링크": {"url": url}}})

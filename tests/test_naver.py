@@ -191,3 +191,43 @@ class NotionPlacesTest(unittest.TestCase):
             self.assertEqual(build_record(data)["event"]["map_url"], "https://naver.me/fromnotion")
         finally:
             business.load()["map_urls"].pop("호텔패키지", None)
+
+
+class ProductLinkTest(unittest.TestCase):
+    class Store:
+        def __init__(self, events, has_product=True):
+            self.events, self.has, self.set, self.prod = events, has_product, [], []
+
+        def set_product_map(self, product, url):
+            self.prod.append((product, url))
+            return "notion://p" if self.has else None
+
+        def all_events(self):
+            return self.events
+
+        def set_map_url(self, pid, url):
+            self.set.append((pid, url))
+
+    EVENTS = [
+        {"id": "a", "title": "A", "product": "갤러리패키지", "status": "상담진행중", "map_url": None},
+        {"id": "b", "title": "B", "product": "갤러리패키지", "status": "상담진행중", "map_url": "https://map.naver.com/p/search/x"},
+        {"id": "c", "title": "C", "product": "갤러리패키지", "status": "상담진행중", "map_url": "https://naver.me/human"},
+        {"id": "d", "title": "D", "product": "갤러리패키지", "status": "이벤트취소", "map_url": None},
+        {"id": "e", "title": "E", "product": "호텔패키지", "status": "상담진행중", "map_url": None},
+    ]
+
+    def test_applies_to_open_events_only(self):
+        s = self.Store(self.EVENTS)
+        out = naver.apply_product_link(s, "갤러리패키지", "https://naver.me/g",
+                                       opener_for(final="https://map.naver.com/p/entry/place/9"))
+        self.assertTrue(out["ok"])
+        self.assertEqual(s.prod, [("갤러리패키지", "https://naver.me/g")])
+        self.assertEqual([pid for pid, _ in s.set], ["a", "b"])
+
+    def test_bad_link_or_unknown_product(self):
+        s = self.Store(self.EVENTS)
+        self.assertEqual(naver.apply_product_link(s, "갤러리패키지", "https://naver.me/x", opener_for(fail=True))["error"], "LINK_FAILED")
+        self.assertEqual(s.prod, [])
+        s = self.Store(self.EVENTS, has_product=False)
+        out = naver.apply_product_link(s, "없는상품", "https://naver.me/g", opener_for(final="https://map.naver.com/p/entry/place/9"))
+        self.assertEqual(out["error"], "NO_PRODUCT")

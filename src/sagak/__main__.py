@@ -7,6 +7,8 @@
   python3 -m sagak transcribe <녹음 파일>     녹음을 구간 시간이 있는 전사로 (lines: "[mm:ss] 화자: 내용")
   python3 -m sagak history <연락처>         그 고객의 이벤트·이전 상담 전체 (기록 전 확인용, Notion에 쓰지 않음)
   python3 -m sagak sweep [--dry-run] [--test] 모든 이벤트를 점검 규칙으로 정리 (기록 때 자동 실행, --test는 테스트 건만)
+  python3 -m sagak product-map <상품명|안내 이름> <네이버 지도 링크>
+                                           상품의 장소 링크를 노션 '상품'에 넣고 그 상품의 진행 중 이벤트에도 달기
   python3 -m sagak recheck-maps [--dry-run]  모든 이벤트 지도 링크를 네이버로 다시 확인 (확인 안 된 자동 링크는 지움)
   python3 -m sagak cleanup-test [--dry-run]  [테스트] 고객·이벤트·상담을 한꺼번에 휴지통으로
   python3 -m sagak ping                      Notion 키와 DB 접근 확인
@@ -107,7 +109,7 @@ def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     cmd = argv[0] if argv else None
     if cmd not in ("check", "record", "resolve", "transcribe", "ping", "announce", "console", "products",
-                   "history", "sweep", "cleanup-test", "recheck-maps", "notify") or (
+                   "history", "sweep", "cleanup-test", "recheck-maps", "notify", "product-map") or (
             cmd not in ("ping", "announce", "console", "products", "sweep", "cleanup-test", "recheck-maps", "notify")
             and len(argv) < 2):
         print(__doc__)
@@ -155,6 +157,20 @@ def main(argv=None) -> int:
             _use_places(store)
             _print({"ok": True, "dry_run": "--dry-run" in argv,
                     "events": naver.recheck(store, dry_run="--dry-run" in argv)})
+            return 0
+        if cmd == "product-map":
+            from . import business, naver
+            store = NotionStore.from_env()
+            places = store.product_places()
+            name = argv[1] if argv[1] in places else business.product_of(argv[1])
+            if not name:
+                raise InputError("UNKNOWN_PRODUCT", "어느 상품인지 알 수 없어요: " + argv[1])
+            if len(argv) < 3:
+                raise InputError("NO_LINK", "네이버 지도 링크가 없어요.")
+            out = naver.apply_product_link(store, name, argv[2])
+            if not out["ok"]:
+                raise InputError(out["error"], out["message"])
+            _print(out)
             return 0
         if cmd == "cleanup-test":
             store = NotionStore.from_env()
