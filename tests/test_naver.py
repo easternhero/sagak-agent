@@ -156,3 +156,24 @@ class RecheckTest(unittest.TestCase):
             return Resp(json.dumps({"items": items if "77" in urllib.parse.unquote(req.full_url) else []}).encode())
         link = naver.confirmed_search_link("없는카페 · 서울 강남구 예시로77길 34", op, ENV)
         self.assertIsNotNone(link)
+
+
+class ProductPlaceTest(unittest.TestCase):
+    def test_product_place_link_used(self):
+        from tests.helpers import load
+        from sagak.record import build_record
+        data = load("s01")
+        data["event"]["product"] = "레스토랑 프로포즈"
+        data["event"]["venue"] = "한강 스카이라운지"
+        r = build_record(data)
+        self.assertEqual(r["event"]["map_url"], "https://naver.me/example1")
+        st = naver.verify(r, opener_for(final="https://map.naver.com/p/entry/place/1234"))
+        self.assertEqual((st, r["event"]["map_url"]), ("staff_ok", "https://naver.me/example1"))
+
+    def test_staff_link_beats_product(self):
+        from tests.helpers import load
+        from sagak.record import build_record
+        data = load("s01")
+        data["event"]["product"] = "레스토랑 프로포즈"
+        data["event"]["venue_url"] = "https://naver.me/staff"
+        self.assertEqual(build_record(data)["event"]["map_url"], "https://naver.me/staff")

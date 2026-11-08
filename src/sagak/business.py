@@ -41,7 +41,11 @@ def load(path: Optional[str] = None) -> dict:
     data = {"brands": list(raw.get("brands", [])), "products": products, "aliases": aliases, "groups": groups,
             "channels": dict(raw.get("channels", {})),
             "guide": {p["name"]: list(p.get("aliases", [])) for p in raw.get("products", []) if p.get("name")},
-            "themes": {p["name"]: p["theme"] for p in raw.get("products", []) if p.get("name") and p.get("theme")}}
+            "themes": {p["name"]: p["theme"] for p in raw.get("products", []) if p.get("name") and p.get("theme")},
+            # 장소가 늘 같은 상품의 고정 장소 "이름 · 주소" (지도 링크 확인용, D53)
+            "venues": {p["name"]: p["venue"] for p in raw.get("products", []) if p.get("name") and p.get("venue")},
+            # 장소가 늘 같은 상품의 네이버 장소 링크(naver.me 등) — 있으면 이 링크를 그대로 단다 (D53)
+            "map_urls": {p["name"]: p["map_url"] for p in raw.get("products", []) if p.get("name") and p.get("map_url")}}
     _cache[path] = data
     return data
 
@@ -58,6 +62,16 @@ def group_of(value: Optional[str]) -> Optional[dict]:
     if not value:
         return None
     return load()["groups"].get(_key(value))
+
+
+def venue_of(product: Optional[str]) -> Optional[str]:
+    """상품의 고정 장소 '이름 · 주소'. 없으면 None."""
+    return load().get("venues", {}).get(product) if product else None
+
+
+def map_url_of(product: Optional[str]) -> Optional[str]:
+    """상품의 네이버 장소 링크. 없으면 None."""
+    return load().get("map_urls", {}).get(product) if product else None
 
 
 def channels() -> dict:

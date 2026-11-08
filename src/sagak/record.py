@@ -219,6 +219,10 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         event["map_url"] = staff_url
     elif event["venue"] and ev.get("venue_exact") is True and "희망 장소" not in needs_check:
         event["map_url"] = naver_search_url(event["venue"])
+    elif business.map_url_of(event.get("product")):  # 상품의 장소 링크(확인 후 그대로, D53)
+        event["map_url"] = business.map_url_of(event["product"])
+    elif business.venue_of(event.get("product")):  # 고정 장소 상품은 확인 후 검색 링크 (D53)
+        event["map_url"] = naver_search_url(business.venue_of(event["product"]))
     else:
         event["map_url"] = None
 

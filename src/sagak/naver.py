@@ -122,7 +122,10 @@ def verify(record: dict, opener=None, env=None) -> str:
         ev["map_url"] = None
         record["consultation"]["questions"].append("보내 주신 지도 링크가 네이버 장소로 열리지 않아요. 링크를 다시 확인해 주세요")
         return "staff_failed"
-    link = confirmed_search_link(ev.get("venue") or "", opener, env)
+    from . import business
+    fixed = business.venue_of(ev.get("product"))  # 장소가 늘 같은 상품은 업체 설정의 장소로 (D53)
+    link = (confirmed_search_link(fixed, opener, env) if fixed else None) or \
+        confirmed_search_link(ev.get("venue") or "", opener, env)
     ev["map_url"] = link
     return "search_ok" if link else "search_unsure"
 
@@ -137,7 +140,9 @@ def recheck(store, dry_run: bool = False, opener=None, env=None) -> list:
     취소·완료 이벤트는 건너뛴다."""
     out = []
     for e in store.all_events():
-        if e.get("status") in ("이벤트취소", "이벤트완료") or not e.get("venue"):
+        from . import business
+        if e.get("status") in ("이벤트취소", "이벤트완료") or not (
+                e.get("venue") or business.venue_of(e.get("product")) or business.map_url_of(e.get("product"))):
             continue
         old = e.get("map_url") or None
         item = {"title": e.get("title"), "url": e.get("url"), "old": old}
@@ -145,7 +150,15 @@ def recheck(store, dry_run: bool = False, opener=None, env=None) -> list:
             item["result"] = "직원 링크 열림" if staff_link_ok(old, opener) else "직원 링크 안 열림(그대로 둠)"
             out.append(item)
             continue
-        new = confirmed_search_link(e["venue"], opener, env)
+        from . import business
+        fixed = business.venue_of(e.get("product"))
+        place = business.map_url_of(e.get("product"))
+        if place and staff_link_ok(place, opener):  # 상품의 장소 링크가 있으면 그것으로
+            new = place
+        else:
+            new = None
+        new = new or (confirmed_search_link(fixed, opener, env) if fixed else None) or \
+            confirmed_search_link(e.get("venue") or "", opener, env)
         if new == old:
             item["result"] = "확인됨(그대로)" if new else "확인 안 됨(빈칸 유지)"
         else:
