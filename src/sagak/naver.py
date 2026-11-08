@@ -3,6 +3,8 @@
 - 직원이 보낸 링크: 열어 보고(리디렉션 따라감) 네이버 장소 페이지로 이어질 때만.
 - 자동 링크: 네이버 검색 API(지역)로 장소를 찾아 이름이 맞는 곳이 딱 하나일 때만, 그 장소 이름·주소로 만든 검색 링크.
   키(SAGAK_NAVER_CLIENT_ID / SAGAK_NAVER_CLIENT_SECRET)가 없으면 자동 링크는 달지 않는다.
+  검색 API는 2026-07-31부터 네이버 클라우드 NAVER API HUB에서 발급한다(기본). 예전 개발자센터 키는
+  SAGAK_NAVER_LOCAL_URL을 openapi.naver.com 주소로 주면 그 방식(헤더)으로 부른다.
 """
 from __future__ import annotations
 
@@ -14,7 +16,8 @@ import urllib.parse
 import urllib.request
 from typing import Optional
 
-LOCAL_API = "https://openapi.naver.com/v1/search/local.json"
+LOCAL_API = "https://naverapihub.apigw.ntruss.com/search/v1/local"  # NAVER API HUB 지역 검색
+LEGACY_HOST = "openapi.naver.com"
 PLACE_RE = re.compile(r"^https://((m\.)?map\.naver\.com/.*(place|entry)/\d+|(m\.|pcmap\.)?place\.naver\.com/\w+/\d+)")
 ADDRESS_RE = re.compile(r"(로|길)\s*\d")
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
@@ -42,8 +45,13 @@ def search_places(query: str, opener=None, env=None) -> Optional[list]:
     cid, secret = env.get("SAGAK_NAVER_CLIENT_ID"), env.get("SAGAK_NAVER_CLIENT_SECRET")
     if not (cid and secret):
         return None
-    url = LOCAL_API + "?" + urllib.parse.urlencode({"query": query, "display": 5})
-    req = urllib.request.Request(url, headers={"X-Naver-Client-Id": cid, "X-Naver-Client-Secret": secret})
+    base = env.get("SAGAK_NAVER_LOCAL_URL") or LOCAL_API
+    url = base + "?" + urllib.parse.urlencode({"query": query, "display": 5})
+    if LEGACY_HOST in base:
+        headers = {"X-Naver-Client-Id": cid, "X-Naver-Client-Secret": secret}
+    else:
+        headers = {"X-NCP-APIGW-API-KEY-ID": cid, "X-NCP-APIGW-API-KEY": secret}
+    req = urllib.request.Request(url, headers=headers)
     try:
         with (opener or urllib.request.urlopen)(req, timeout=10) as resp:
             return json.loads(resp.read().decode("utf-8")).get("items") or []
