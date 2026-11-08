@@ -12,6 +12,7 @@ from . import business
 from .normalize import mask_numbers, normalize_phone, parse_caption, split_name
 
 KST = timezone(timedelta(hours=9))
+REFUND_DONE = "환불 완료"
 TRANSCRIPT_EXT = (".txt", ".srt", ".vtt", ".md", ".csv")
 TRANSCRIPT_MAX = 3 * 1024 * 1024
 
@@ -188,6 +189,9 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         "desired_at_text": _text(ev.get("desired_at_text")),
         "budget": _int(ev.get("budget")),
         "deposit": _int(ev.get("deposit")),
+        # 상담자가 환불 완료를 분명히 말했을 때만 (D51). 그 밖의 결제 칸은 사람이
+        "payment_status": REFUND_DONE if ev.get("refund_done") is True else None,
+        "refund_amount": _int(ev.get("refund_amount")) if ev.get("refund_done") is True else None,
         "confirmed_at": _iso(ev.get("confirmed_at")),  # 통화에서 확정한 일시만 (노션 '확정 일시')
         "brand": business.brand_of(_text(ev.get("brand"))),
         "notes": mask_numbers(_join([_text(n) for n in (ev.get("notes") or []) if _text(n)]) if isinstance(

@@ -104,8 +104,18 @@ class ScopeTest(unittest.TestCase):
 
 class ClosedTest(unittest.TestCase):
     def test_cancelled_not_filled(self):
-        self.assertEqual(sweep.check(ev(status="이벤트취소", payment_status="예약금 입금"), TODAY), ({}, [], []))
+        self.assertEqual(sweep.check(ev(status="이벤트취소", payment_status="예약금 입금"), TODAY)[0], {})
 
     def test_done_no_warning(self):
         e = ev(status="이벤트완료", desired_at="2026-12-24T00:00:00.000+09:00", desired_at_text="오후 4시")
         self.assertEqual(sweep.check(e, TODAY), ({}, [], []))
+
+
+class RefundWarnTest(unittest.TestCase):
+    def test_cancelled_with_deposit_warns(self):
+        fields, _, warns = sweep.check(ev(status="이벤트취소", payment_status="예약금 입금"), TODAY)
+        self.assertEqual(fields, {})
+        self.assertIn("환불", warns[0])
+
+    def test_cancelled_refunded_quiet(self):
+        self.assertEqual(sweep.check(ev(status="이벤트취소", payment_status="환불 완료"), TODAY), ({}, [], []))

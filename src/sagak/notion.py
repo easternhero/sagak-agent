@@ -39,7 +39,8 @@ EVENT_PROPS = {
     "notes": ("특이사항", "rich_text"),     # 현장에서 챙길 것
     "request": ("문의 및 신청사항", "rich_text"),
     "status": ("이벤트 상태", "select"),
-    "payment_status": ("결제 상태", "select"),  # 사람이 입력. 봇은 읽기만 (점검 규칙, D41)
+    "payment_status": ("결제 상태", "select"),  # 사람이 입력. 봇은 '환불 완료'만 (대화에 분명할 때, D51)
+    "refund_amount": ("환불 금액", "number"),
     "requested_on": ("의뢰일", "date"),
 }
 CONSULT_PROPS = {

@@ -27,6 +27,7 @@ EVENT_LABELS = {
     "deposit": "예약금액",
     "confirmed_at": "확정 일시",
     "brand": "제휴",
+    "refund_amount": "환불 금액",
 }
 # 서술형 항목은 비어 있을 때만 채우고, 다르더라도 차이로 표시하지 않는다 (상담 내역에 이미 남음)
 EVENT_FILL_ONLY = {"desired_at_text": "희망 일시(원문)", "request": "문의 및 신청사항", "map_url": "지도 링크"}
@@ -143,6 +144,9 @@ def choose_event(record: dict, events: list) -> dict:
             elif ev["notes"] not in old:
                 day = record["consultation"]["consulted_at"][5:10].replace("-", "/")
                 to_set["notes"] = old + "\n[" + day + "] " + ev["notes"]
+        # 환불 완료는 예약금 입금·완납 상태를 대신한다 (D51). 사람이 고른 다른 환불 표시는 그대로
+        if ev.get("payment_status") == "환불 완료" and e.get("payment_status") in (None, "", "예약금 입금", "완납", "환불 필요"):
+            to_set["payment_status"] = "환불 완료"
         # 자동 검색 링크만 있던 곳에 직원이 보낸 정확한 링크가 오면 바꾼다 (사람이 넣은 링크는 그대로)
         new_url, old_url = ev.get("map_url"), e.get("map_url") or ""
         if new_url and old_url.startswith(SEARCH_PREFIX) and not new_url.startswith(SEARCH_PREFIX):

@@ -53,6 +53,8 @@ def check(event: dict, today) -> tuple:
     """이벤트 하나 → (바꿀 칸, 바꾼 이유 목록, 알림 목록). 아무것도 바꾸지 않으면 빈 값."""
     fields, why, warns = {}, [], []
     pay, status = event.get("payment_status"), event.get("status")
+    if status == "이벤트취소" and pay in ("예약금 입금", "완납"):  # 환불 처리가 표시되지 않음 (D51)
+        warns.append("취소된 이벤트인데 결제 상태가 '{}'예요. 환불 여부(환불 필요·완료·없음)를 표시해 주세요".format(pay))
     if status in CLOSED:
         return fields, why, warns
     desired, confirmed = event.get("desired_at"), event.get("confirmed_at")

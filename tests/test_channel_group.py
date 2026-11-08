@@ -84,3 +84,31 @@ class MaskTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RefundTest(unittest.TestCase):
+    def test_refund_only_when_done(self):
+        data = load("s01")
+        data["event"]["refund_done"] = True
+        data["event"]["refund_amount"] = 150000
+        r = build_record(data)
+        self.assertEqual((r["event"]["payment_status"], r["event"]["refund_amount"]), ("환불 완료", 150000))
+        data["event"]["refund_done"] = None
+        r = build_record(data)
+        self.assertEqual((r["event"]["payment_status"], r["event"]["refund_amount"]), (None, None))
+
+    def test_refund_replaces_deposit_paid(self):
+        store = MemoryStore()
+        run(store, "s01")
+        e = next(iter(store.events.values()))
+        e["payment_status"] = "예약금 입금"
+        run(store, "s02", lambda d: d["event"].update(refund_done=True))
+        self.assertEqual(e["payment_status"], "환불 완료")
+
+    def test_human_no_refund_kept(self):
+        store = MemoryStore()
+        run(store, "s01")
+        e = next(iter(store.events.values()))
+        e["payment_status"] = "환불 없음"
+        run(store, "s02", lambda d: d["event"].update(refund_done=True))
+        self.assertEqual(e["payment_status"], "환불 없음")
