@@ -6,7 +6,8 @@
                                            '고객 연결 필요' 상담을 같은 고객/별도 고객으로 연결
   python3 -m sagak transcribe <녹음 파일>     녹음을 구간 시간이 있는 전사로 (lines: "[mm:ss] 화자: 내용")
   python3 -m sagak history <연락처>         그 고객의 이벤트·이전 상담 전체 (기록 전 확인용, Notion에 쓰지 않음)
-  python3 -m sagak sweep [--dry-run]         모든 이벤트를 점검 규칙으로 정리 (기록 때 자동 실행)
+  python3 -m sagak sweep [--dry-run] [--test] 모든 이벤트를 점검 규칙으로 정리 (기록 때 자동 실행, --test는 테스트 건만)
+  python3 -m sagak cleanup-test [--dry-run]  [테스트] 고객·이벤트·상담을 한꺼번에 휴지통으로
   python3 -m sagak ping                      Notion 키와 DB 접근 확인
   python3 -m sagak products                  업체 설정의 브랜드·상품명·고객 안내 이름 보기
   python3 -m sagak announce [--to admin|others] [--dry-run] [--env <.env 경로>] [--stdin]
@@ -78,11 +79,14 @@ def _resolve(args: list) -> dict:
     return out
 
 
-def _sweep(store) -> dict:
-    """기록 뒤 전체 이벤트 점검. 실패해도 기록 결과는 그대로 돌려준다."""
+def _sweep(store, record: dict) -> dict:
+    """기록 뒤 전체 이벤트 점검. 테스트 기록이면 테스트 이벤트만, 아니면 테스트 제외 (D44).
+    실패해도 기록 결과는 그대로 돌려준다."""
     from . import sweep
+    from .normalize import is_test
+    cust = record["customer"]
     try:
-        return sweep.run(store)
+        return sweep.run(store, scope="test" if is_test(cust.get("name"), cust.get("phone")) else "real")
     except NotionError as e:
         return {"error": str(e), "changes": [], "warnings": []}
 
@@ -91,8 +95,8 @@ def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     cmd = argv[0] if argv else None
     if cmd not in ("check", "record", "resolve", "transcribe", "ping", "announce", "console", "products",
-                   "history", "sweep") or (
-            cmd not in ("ping", "announce", "console", "products", "sweep") and len(argv) < 2):
+                   "history", "sweep", "cleanup-test") or (
+            cmd not in ("ping", "announce", "console", "products", "sweep", "cleanup-test") and len(argv) < 2):
         print(__doc__)
         return 1
     try:
@@ -114,11 +118,26 @@ def main(argv=None) -> int:
                                              to=_option(argv, "--to") or "all")})
             return 0
         if cmd == "transcribe":
-            _print({"ok": True, **transcribe(argv[1])})
+            from .transcribe import save_result
+            result = transcribe(argv[1])
+            _print({"ok": True, **result, **save_result(result, argv[1])})
             return 0
         if cmd == "sweep":
             from . import sweep
-            _print({"ok": True, **sweep.run(NotionStore.from_env(), dry_run="--dry-run" in argv)})
+            _print({"ok": True, **sweep.run(NotionStore.from_env(), dry_run="--dry-run" in argv,
+                                            scope="test" if "--test" in argv else "real")})
+            return 0
+        if cmd == "cleanup-test":
+            store = NotionStore.from_env()
+            found = store.test_pages()
+            dry = "--dry-run" in argv
+            if not dry:
+                for kind in ("consultations", "events", "customers"):
+                    for pid in found[kind]:
+                        store.trash(pid)
+                        if kind == "consultations":
+                            pending.delete(pid)
+            _print({"ok": True, "dry_run": dry, **{k: list(v.values()) for k, v in found.items()}})
             return 0
         if cmd == "history":
             from .normalize import normalize_phone
@@ -135,12 +154,16 @@ def main(argv=None) -> int:
             _print({"ok": True, "record": record})
             return 0
         store = NotionStore.from_env()
+        from . import clips
+        clip_info = clips.attach(record, store)
         p = plan(record, store)
         out = apply(record, p, store)
         if out["review"] == "고객 연결 필요":
             pending.save(out["consultation"]["id"], record, p["candidates"])
             out["pending"] = True
-        out["sweep"] = _sweep(store)
+        out["sweep"] = _sweep(store, record)
+        if clip_info.get("clips") or clip_info.get("error"):
+            out["audio_clips"] = clip_info
         _print({"ok": True, **out})
         return 0
     except TranscribeError as e:

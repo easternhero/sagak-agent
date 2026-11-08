@@ -92,3 +92,11 @@ class RunTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ScopeTest(unittest.TestCase):
+    def test_scope(self):
+        s = Store([ev(payment_status="예약금 입금"), ev(id="t1", title="[테스트] 박서준 · 프로포즈 · 11/21", payment_status="예약금 입금")])
+        now = datetime(2026, 11, 20, tzinfo=sweep.KST)
+        self.assertEqual([c["id"] for c in sweep.run(s, now=now, dry_run=True, scope="test")["changes"]], ["t1"])
+        self.assertEqual([c["id"] for c in sweep.run(s, now=now, dry_run=True, scope="real")["changes"]], ["e1"])

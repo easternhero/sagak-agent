@@ -292,7 +292,8 @@ def body_sections(record: dict, p: dict) -> list:
         lines = []
         for e in record["evidence"]:
             time = " ({})".format(e["time"]) if e.get("time") else ""
-            lines.append("{} — “{}”{}".format(e["field"] or "근거", e["quote"], time))
+            text = "{} — “{}”{}".format(e["field"] or "근거", e["quote"], time)
+            lines.append((text, e["clip"]) if e.get("clip") else text)  # 녹음 클립은 그 줄 밑에 (D43)
         sections.append(("근거", lines))
     if p["diffs"]:
         sections.append(("기존 정보와 다른 내용 (덮어쓰지 않음)", [

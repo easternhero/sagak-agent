@@ -122,3 +122,29 @@ def transcribe(path: str, model: Optional[str] = None, key: Optional[str] = None
     result["model"] = model
     result["lines"] = to_lines(result)
     return result
+
+
+def save_result(result: dict, audio_path: str, outdir: Optional[str] = None) -> dict:
+    """전사 결과를 파일로 남긴다. 기록할 때 코드가 이 파일을 그대로 읽는다 (D42).
+    <이름>.sagak.txt = 전사 줄, <이름>.sagak.json = 구간 시간(녹음 클립용, D43)."""
+    import hashlib
+    outdir = outdir or os.environ.get("TMPDIR") or tempfile.gettempdir()
+    os.makedirs(outdir, exist_ok=True)
+    tag = hashlib.sha1(os.path.abspath(audio_path).encode()).hexdigest()[:8]
+    base = os.path.join(outdir, os.path.splitext(os.path.basename(audio_path))[0] + "-" + tag + ".sagak")
+    with open(base + ".txt", "w", encoding="utf-8") as f:
+        f.write("\n".join(result.get("lines") or []) + "\n")
+    with open(base + ".json", "w", encoding="utf-8") as f:
+        json.dump({"audio_file": os.path.abspath(audio_path), "segments": result.get("segments") or []}, f, ensure_ascii=False)
+    return {"transcript_file": base + ".txt", "segments_file": base + ".json"}
+
+
+def load_segments(transcript_file: Optional[str]) -> list:
+    """save_result가 남긴 구간 시간. 없으면 빈 목록."""
+    if not transcript_file or not transcript_file.endswith(".sagak.txt"):
+        return []
+    try:
+        with open(transcript_file[:-4] + ".json", encoding="utf-8") as f:
+            return json.load(f).get("segments") or []
+    except (OSError, ValueError):
+        return []

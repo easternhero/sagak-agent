@@ -12,6 +12,30 @@ from . import business
 from .normalize import mask_numbers, normalize_phone, parse_caption, split_name
 
 KST = timezone(timedelta(hours=9))
+TRANSCRIPT_EXT = (".txt", ".srt", ".vtt", ".md", ".csv")
+TRANSCRIPT_MAX = 3 * 1024 * 1024
+
+
+def read_transcript(path: Any) -> Optional[str]:
+    """받은 전사·채팅 파일을 모델을 거치지 않고 그대로 읽는다 (D42). 읽을 수 없으면 InputError."""
+    import os
+    path = _text(path)
+    if not path:
+        return None
+    if os.path.splitext(path)[1].lower() not in TRANSCRIPT_EXT:
+        raise InputError("BAD_TRANSCRIPT_FILE", "전사 파일은 txt·srt·vtt만 읽을 수 있습니다: " + os.path.basename(path))
+    if not os.path.isfile(path):
+        raise InputError("BAD_TRANSCRIPT_FILE", "전사 파일을 찾지 못했습니다: " + os.path.basename(path))
+    if os.path.getsize(path) > TRANSCRIPT_MAX:
+        raise InputError("BAD_TRANSCRIPT_FILE", "전사 파일이 너무 큽니다(3MB 초과).")
+    with open(path, "rb") as f:
+        raw = f.read()
+    for enc in ("utf-8-sig", "cp949"):
+        try:
+            return raw.decode(enc).replace("\r\n", "\n").strip()
+        except UnicodeDecodeError:
+            continue
+    raise InputError("BAD_TRANSCRIPT_FILE", "전사 파일의 글자 인코딩을 알아볼 수 없습니다.")
 
 THEMES = ("프로포즈", "생일/기념일", "기타")
 # 접수 브랜드(노션 '제휴')와 상품명('희망 이벤트')은 업체별 설정 agent/business.json에서 읽는다 (business.py).
@@ -226,5 +250,8 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         "event": event,
         "consultation": consultation,
         "evidence": evidence,
-        "transcript": mask_numbers(_text(data.get("transcript"))),
+        # 파일이 있으면 파일 원문 그대로, 없을 때만 모델이 옮긴 원문 (D42)
+        "transcript": mask_numbers(read_transcript(data.get("transcript_file")) or _text(data.get("transcript"))),
+        "transcript_file": _text(data.get("transcript_file")),
+        "audio_file": _text(data.get("audio_file")),
     }

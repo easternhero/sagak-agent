@@ -12,6 +12,9 @@ API = "https://api.notion.com/v1"
 VERSION = "2022-06-28"
 TEXT_LIMIT = 2000      # rich_text 한 덩어리 최대 글자 수
 BLOCK_LIMIT = 95       # 페이지 생성 시 children 최대 100개, 여유를 둠
+APPEND_BATCH = 100     # 블록 덧붙이기 한 번에 최대 100개
+PARA_CHARS = 1800      # 전사 원문은 여러 줄을 한 문단으로 묶는다(블록 수 줄이기)
+TRANSCRIPT = "전사 원문"
 
 CUSTOMER_PROPS = {
     "name": ("의뢰인", "title"),
@@ -130,16 +133,48 @@ def from_properties(page: dict, mapping: dict) -> dict:
     return out
 
 
+def audio_block(upload_id: str) -> dict:
+    return {"object": "block", "type": "audio", "audio": {"type": "file_upload", "file_upload": {"id": upload_id}}}
+
+
+def pack_lines(lines: list, limit: int = PARA_CHARS) -> list:
+    """전사 줄을 줄바꿈으로 이어 붙인 문단들로. 한 줄이 너무 길면 그 줄만 따로."""
+    out, cur = [], ""
+    for line in lines:
+        line = line.rstrip()
+        if not line.strip():
+            continue
+        if cur and len(cur) + 1 + len(line) > limit:
+            out.append(cur)
+            cur = ""
+        cur = line if not cur else cur + "\n" + line
+    if cur:
+        out.append(cur)
+    return out
+
+
+def transcript_blocks(lines: list) -> list:
+    return [{"object": "block", "type": "paragraph", "paragraph": {"rich_text": _rich(p)}} for p in pack_lines(lines)]
+
+
 def to_blocks(sections: list) -> list:
-    """[(제목, [줄...])] → Notion 블록. 전사 원문은 문단, 나머지는 글머리 목록."""
+    """[(제목, [줄...])] → Notion 블록. 줄이 (글, 파일 업로드 id)면 그 글머리 밑에 녹음 클립 (D43).
+    전사 원문은 create_consultation이 접기 목록으로 따로 붙인다 (D42)."""
     blocks = []
     for heading, lines in sections:
+        if heading == TRANSCRIPT:
+            continue
         blocks.append({"object": "block", "type": "heading_3", "heading_3": {"rich_text": _rich(heading)}})
-        kind = "paragraph" if heading == "전사 원문" else "bulleted_list_item"
         for line in lines:
+            clip = None
+            if isinstance(line, (tuple, list)):
+                line, clip = line[0], line[1]
             if not line.strip():
                 continue
-            blocks.append({"object": "block", "type": kind, kind: {"rich_text": _rich(line)}})
+            item = {"rich_text": _rich(line)}
+            if clip:
+                item["children"] = [audio_block(clip)]
+            blocks.append({"object": "block", "type": "bulleted_list_item", "bulleted_list_item": item})
     if len(blocks) > BLOCK_LIMIT:
         blocks = blocks[:BLOCK_LIMIT - 1] + [{"object": "block", "type": "paragraph", "paragraph": {
             "rich_text": _rich("(분량이 많아 이하 생략)")}}]
@@ -248,6 +283,42 @@ class NotionStore:
             out.append(dict(c, events=events))
         return out
 
+    def _query_all(self, db: str, flt: dict) -> list:
+        out, cursor = [], None
+        while True:
+            body = {"filter": flt, "page_size": 100}
+            if cursor:
+                body["start_cursor"] = cursor
+            res = self._request("POST", "/databases/{}/query".format(self.dbs[db]), body)
+            out += res.get("results", [])
+            if not res.get("has_more"):
+                return out
+            cursor = res.get("next_cursor")
+
+    def test_pages(self) -> dict:
+        """[테스트] 표시 고객과 그 이벤트·상담, 제목에 [테스트]가 붙은 이벤트·상담 (D44)."""
+        from .normalize import TEST_PHONE_PREFIX, TEST_PREFIX
+        title = lambda p: from_property(next(v for v in p["properties"].values() if v.get("type") == "title"))
+        found = {"customers": {}, "events": {}, "consultations": {}}
+        for p in self._query_all("customers", {"or": [
+                {"property": "의뢰인", "title": {"starts_with": TEST_PREFIX}},
+                {"property": "연락처", "phone_number": {"starts_with": TEST_PHONE_PREFIX}}]}):
+            found["customers"][p["id"]] = title(p)
+        ev_filters = [{"property": "제목", "title": {"contains": TEST_PREFIX}}]
+        ev_filters += [{"property": "고객", "relation": {"contains": cid}} for cid in found["customers"]]
+        for i in range(0, len(ev_filters), 90):
+            for p in self._query_all("events", {"or": ev_filters[i:i + 90]}):
+                found["events"][p["id"]] = title(p)
+        co_filters = [{"property": "제목", "title": {"contains": TEST_PREFIX}}]
+        co_filters += [{"property": "이벤트", "relation": {"contains": eid}} for eid in found["events"]]
+        for i in range(0, len(co_filters), 90):
+            for p in self._query_all("consultations", {"or": co_filters[i:i + 90]}):
+                found["consultations"][p["id"]] = title(p)
+        return found
+
+    def trash(self, page_id: str) -> None:
+        self._request("PATCH", "/pages/{}".format(page_id), {"archived": True})
+
     def create_customer(self, fields: dict) -> dict:
         return self._create("customers", to_properties(fields, CUSTOMER_PROPS))
 
@@ -285,4 +356,39 @@ class NotionStore:
         props = to_properties(fields, CONSULT_PROPS)
         if event_id:
             props["이벤트"] = to_property("relation", [event_id])
-        return self._create("consultations", props, to_blocks(sections))
+        ref = self._create("consultations", props, to_blocks(sections))
+        for heading, lines in sections:
+            if heading == TRANSCRIPT and lines:
+                self.append_transcript(ref["id"], lines)
+        return ref
+
+    def append_transcript(self, page_id: str, lines: list) -> None:
+        """전사 원문 전체를 접기 제목 아래에 100블록씩 나눠 끝까지 붙인다 (D42)."""
+        n = sum(1 for l in lines if str(l).strip())
+        head = {"object": "block", "type": "heading_3", "heading_3": {
+            "rich_text": _rich("{} ({}줄)".format(TRANSCRIPT, n)), "is_toggleable": True}}
+        res = self._request("PATCH", "/blocks/{}/children".format(page_id), {"children": [head]})
+        toggle = res["results"][0]["id"]
+        body = transcript_blocks(lines)
+        for i in range(0, len(body), APPEND_BATCH):
+            self._request("PATCH", "/blocks/{}/children".format(toggle), {"children": body[i:i + APPEND_BATCH]})
+
+    def upload_file(self, filename: str, data: bytes, content_type: str) -> str:
+        """작은 파일(20MB 이하)을 Notion에 올리고 파일 업로드 id를 돌려준다 (녹음 클립, D43)."""
+        import uuid
+        up = self._request("POST", "/file_uploads", {"filename": filename, "content_type": content_type})
+        boundary = "----sagak" + uuid.uuid4().hex
+        body = ("--{b}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{f}\"\r\n"
+                "Content-Type: {t}\r\n\r\n").format(b=boundary, f=filename, t=content_type).encode() + data + \
+            "\r\n--{}--\r\n".format(boundary).encode()
+        req = urllib.request.Request(API + "/file_uploads/{}/send".format(up["id"]), data=body, method="POST", headers={
+            "Authorization": "Bearer " + self.token, "Notion-Version": VERSION,
+            "Content-Type": "multipart/form-data; boundary=" + boundary})
+        try:
+            with self._open(req, timeout=60) as resp:
+                json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            raise NotionError("Notion 파일 업로드 실패 ({}): {}".format(e.code, e.read().decode("utf-8", "replace")[:300])) from None
+        except urllib.error.URLError as e:
+            raise NotionError("Notion 연결 실패: {}".format(e.reason)) from None
+        return up["id"]

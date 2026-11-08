@@ -42,9 +42,28 @@ class NotionTest(unittest.TestCase):
         c = from_properties(page, CUSTOMER_PROPS)
         self.assertEqual((c["name"], c["phone"], c["customer_type"]), ("김민수", "010-0000-1111", None))
 
-    def test_blocks_are_capped(self):
-        blocks = to_blocks([("전사 원문", ["줄{}".format(i) for i in range(300)])])
-        self.assertLessEqual(len(blocks), 95)
+    def test_transcript_not_in_page_blocks(self):
+        blocks = to_blocks([("근거", ["a"]), ("전사 원문", ["줄{}".format(i) for i in range(300)])])
+        self.assertEqual(len(blocks), 2)  # 전사 원문은 따로 붙인다 (D42)
+
+    def test_full_transcript_appended_in_batches(self):
+        lines = ["[{:02d}:00] A: ".format(i % 60) + "가" * 300 for i in range(1000)]  # 약 30만 자
+        opener = FakeOpener([{"id": "c1", "url": "u"}, {"results": [{"id": "t1"}]}] + [{"results": []}] * 3)
+        store = NotionStore("tok", "dbc", "dbe", "dbs", opener=opener)
+        store.create_consultation({"title": "t"}, None, [("근거", ["x"]), ("전사 원문", lines)])
+        head = opener.calls[1][2]["children"][0]["heading_3"]
+        self.assertTrue(head["is_toggleable"])
+        self.assertIn("1000줄", head["rich_text"][0]["text"]["content"])
+        appended = [c for c in opener.calls[2:]]
+        self.assertTrue(all(u.endswith("/blocks/t1/children") for _, u, _ in appended))
+        text = "\n".join(b["paragraph"]["rich_text"][0]["text"]["content"] for _, _, body in appended for b in body["children"])
+        self.assertEqual(text.splitlines(), lines)  # 한 줄도 빠지지 않음
+        self.assertTrue(all(len(body["children"]) <= 100 for _, _, body in appended))
+
+    def test_evidence_clip_under_bullet(self):
+        blocks = to_blocks([("근거", [("희망 일시 — “3시”", "up1")])])
+        child = blocks[1]["bulleted_list_item"]["children"][0]
+        self.assertEqual(child["audio"]["file_upload"]["id"], "up1")
 
     def test_requests(self):
         opener = FakeOpener([

@@ -97,3 +97,12 @@ def parse_caption(caption: Optional[str]) -> dict:
     if len(others) > 1:
         result["company"] = " ".join(others[1:])
     return result
+
+
+# 봇 테스트용 고객 표시 (D44). 이 표시가 있는 기록은 `sagak cleanup-test`로 한꺼번에 휴지통에 넣는다.
+TEST_PREFIX = "[테스트]"
+TEST_PHONE_PREFIX = "010-0000-"
+
+
+def is_test(name: Optional[str] = None, phone: Optional[str] = None) -> bool:
+    return bool((name or "").strip().startswith(TEST_PREFIX) or (phone or "").startswith(TEST_PHONE_PREFIX))

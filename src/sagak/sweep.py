@@ -74,10 +74,15 @@ def check(event: dict, today) -> tuple:
     return fields, why, warns
 
 
-def run(store, now: Optional[datetime] = None, dry_run: bool = False) -> dict:
+def run(store, now: Optional[datetime] = None, dry_run: bool = False, scope: Optional[str] = None) -> dict:
+    """scope: 'test' = 테스트 이벤트만, 'real' = 테스트 제외, None = 전부 (D44)."""
+    from .normalize import TEST_PREFIX
     now = (now or datetime.now(KST)).astimezone(KST)
     changes, warnings = [], []
     for e in store.all_events():
+        test = TEST_PREFIX in (e.get("title") or "")
+        if (scope == "test" and not test) or (scope == "real" and test):
+            continue
         fields, why, warns = check(e, now.date())
         item = {"id": e["id"], "url": e.get("url"), "title": e.get("title")}
         if fields:
@@ -87,4 +92,4 @@ def run(store, now: Optional[datetime] = None, dry_run: bool = False) -> dict:
             changes.append(dict(item, changes=why))
         for w in warns:
             warnings.append(dict(item, warning=w))
-    return {"changes": changes, "warnings": warnings, "dry_run": dry_run}
+    return {"changes": changes, "warnings": warnings, "dry_run": dry_run, "scope": scope or "all"}
