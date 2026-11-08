@@ -4,7 +4,7 @@
 봇 전체 재시작이 필요한 변경(설정·키)은 줄 끝에 `[restart]`를 붙인다 → 관리자에게만 [/restart] 버튼.
 
 보내기 (개발자 PC에서): `PYTHONPATH=src python3 -m sagak announce` (미리 보기: `--dry-run`)
-화면으로 보내기 (개발자 PC에서): `PYTHONPATH=src python3 -m sagak console` → 브라우저에서 문구 확인·편집 후 ① 관리자에게 보내 확인 → ② 직원에게 보내기. 명령으로는 `announce --to admin`, `announce --to others`. 보낸 위치는 프로필 폴더 `sagak_announced.json`.
+화면으로 보내기 (개발자 PC에서): `PYTHONPATH=src python3 -m sagak console` → 브라우저에서 문구 확인·편집 후 ① 관리자에게 보내 확인 → ② 직원에게 보내기. 같은 화면 아래 「요청·공지 보내기」는 이 파일과 상관없이 적은 그대로 보낸다(업체 정보가 담긴 요청은 여기로, 레포에 남지 않음). 명령으로는 `announce --to admin`, `announce --to others`. 보낸 위치는 프로필 폴더 `sagak_announced.json`.
 
 ## 2026-11-08
 - 결제 상태에 환불 필요·환불 완료·환불 없음이 생겼어요. 대화에 환불 완료가 분명하면 봇이 표시하고, 취소됐는데 환불 표시가 없으면 알려 드려요

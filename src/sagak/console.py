@@ -1,6 +1,7 @@
 """개발자 PC에서 띄우는 작은 발송 화면 (D27-B).  python3 -m sagak console [--port 8765]
 
 agent/CHANGES.md 중 아직 안 보낸 안내를 보여 주고, 고쳐서 미리 보기(dry-run)·보내기를 한다.
+아래 칸에서는 요청·공지를 그대로(머리말·버튼 없이) 보낸다(notify). 변경 안내 보낸 기록과는 무관.
 127.0.0.1에서만 열리고, 페이지에 심은 일회용 토큰과 Host 확인으로 다른 사이트의 요청을 막는다.
 """
 from __future__ import annotations
@@ -15,7 +16,7 @@ from . import announce as an
 
 PAGE = r"""<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>사각사각 안내 보내기</title>
+<title>사각사각 안내·알림 보내기</title>
 <style>
 :root{--bg:#f6f7f9;--surface:#fff;--surface-2:#eceef2;--fg:#1b1f24;--muted:#5d6675;--line:#dde1e7;--accent:#2d55c9;--ok:#1f7a4d;--bad:#b42318;
 --font:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
@@ -30,7 +31,8 @@ textarea{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}button.danger{background:var(--bad);border-color:var(--bad);color:#fff}button:disabled{opacity:.5;cursor:not-allowed}
 .who{font-size:12px;color:var(--muted)}.bubble{background:var(--surface-2);border-radius:12px 12px 12px 4px;padding:10px 12px;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
 .key{text-align:center;font-size:13px;font-weight:600;padding:6px;border-radius:8px;border:1px solid var(--line);color:var(--accent)}
-.msg{display:flex;flex-direction:column;gap:6px}.status{font-size:14px;padding:10px 12px;border-radius:8px;background:var(--surface-2)}.status.ok{color:var(--ok)}.status.bad{color:var(--bad)}
+.msg{display:flex;flex-direction:column;gap:6px}h1.sub{font-size:20px;margin:34px 0 6px}select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+#ntext{min-height:150px}.status{font-size:14px;padding:10px 12px;border-radius:8px;background:var(--surface-2)}.status.ok{color:var(--ok)}.status.bad{color:var(--bad)}
 </style></head><body><div class="wrap">
 <h1>사각사각 안내 보내기</h1>
 <p class="lede">봇이 바뀐 점을 알리고 [/new] 버튼을 띄웁니다. ① 관리자에게 먼저 보내 [/restart]·[/new]로 잘 되는지 확인한 뒤 ② 직원에게 보내세요. 줄 끝에 [restart]가 있으면 관리자에게만 [/restart] 버튼이 갑니다. 이 화면은 이 개발자 PC에서만 열립니다.</p>
@@ -42,6 +44,17 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--s
   <p class="muted" id="flow"></p>
   <div class="status" id="status" hidden></div></div>
  <div class="card"><h2>텔레그램에 보이는 모습</h2><div id="preview" class="msg"></div></div>
+</div>
+<h1 class="sub">요청·공지 보내기</h1>
+<p class="lede">봇 변경과 상관없는 부탁이나 공지를 적은 그대로 보냅니다. 머리말과 버튼이 붙지 않고, 위의 변경 안내 기록에도 영향이 없습니다.</p>
+<div class="grid">
+ <div class="card"><h2>보낼 내용</h2>
+  <label class="muted" for="nto">받는 사람</label>
+  <select id="nto"><option value="others">직원(관리자 제외)</option><option value="admin">관리자만(시험용)</option><option value="all">모두</option></select>
+  <textarea id="ntext" aria-label="요청·공지 내용" placeholder="예) 📍 부탁드려요&#10;○○ 장소의 네이버 지도 공유 링크를 보내 주세요."></textarea>
+  <div class="actions"><button class="primary" id="nsend">보내기</button><button id="ndry">미리 보기(발송 안 함)</button></div>
+  <div class="status" id="nstatus" hidden></div></div>
+ <div class="card"><h2>텔레그램에 보이는 모습</h2><div id="npreview" class="msg"></div></div>
 </div></div>
 <script>
 const TOKEN="__TOKEN__";const $=id=>document.getElementById(id);const RESTART="[restart]";let armed=null,info={};
@@ -70,7 +83,22 @@ $("dry").onclick=async()=>{const r=await api("/api/send",{text:$("text").value,d
  $("send-"+to).disabled=true;try{const r=await api("/api/send",{text:$("text").value,to});
   status(r.ok?(to==="admin"?"관리자에게 보냈어요. 텔레그램에서 [/restart]·[/new]를 눌러 확인한 뒤 ② 직원에게 보내세요.":r.sent+"명의 직원에게 보냈어요."):"실패: "+r.message,r.ok?"ok":"bad");
   if(r.ok){const t=$("text").value;await load();$("text").value=t;preview()}}finally{$("send-"+to).disabled=false;disarm()}}});
-load();
+const NWHO={others:"직원",admin:"관리자",all:"모두"};let narmed=false;
+function nstatus(t,c){const s=$("nstatus");s.hidden=false;s.className="status "+(c||"");s.textContent=t}
+function ncount(){const n=info.users||0,to=$("nto").value;return to==="admin"?1:to==="all"?n:Math.max(n-1,0)}
+function npreview(){const box=$("npreview");box.replaceChildren();const t=$("ntext").value.trim();
+ if(!t){box.textContent="보낼 내용을 적어 주세요.";ndisarm();return}
+ const d=document.createElement("div");d.className="msg";const w=document.createElement("div");w.className="who";w.textContent=NWHO[$("nto").value]+" "+ncount()+"명";
+ const b=document.createElement("div");b.className="bubble";b.textContent=t;d.append(w,b);box.append(d);ndisarm()}
+function ndisarm(){narmed=false;$("nsend").textContent="보내기";$("nsend").className="primary"}
+$("ntext").addEventListener("input",npreview);$("nto").addEventListener("change",npreview);
+$("ndry").onclick=async()=>{const r=await api("/api/notify",{text:$("ntext").value,to:$("nto").value,dry_run:true});
+ nstatus(r.ok?"미리 보기 확인: "+r.count+"명에게 갈 예정 (보내지 않음)":"실패: "+r.message,r.ok?"ok":"bad")};
+$("nsend").onclick=async()=>{if(!$("ntext").value.trim()){nstatus("보낼 내용이 없어요.","bad");return}
+ if(!narmed){narmed=true;$("nsend").textContent="정말 보내기 ("+NWHO[$("nto").value]+" "+ncount()+"명)";$("nsend").className="danger";return}
+ $("nsend").disabled=true;try{const r=await api("/api/notify",{text:$("ntext").value,to:$("nto").value});
+  nstatus(r.ok?r.sent+"명에게 보냈어요.":"실패: "+r.message,r.ok?"ok":"bad");if(r.ok){$("ntext").value="";npreview()}}finally{$("nsend").disabled=false;ndisarm()}};
+load().then(npreview);
 </script></body></html>"""
 
 
@@ -83,7 +111,7 @@ def state(env_path: Optional[str] = None) -> dict:
             "lines": pend["admin"] or pend["others"], "users": len(users), "warning": an.soul_warning(env_path)}
 
 
-def make_handler(token: str, port: int, env_path: Optional[str] = None, send=an.announce):
+def make_handler(token: str, port: int, env_path: Optional[str] = None, send=an.announce, notify=an.notify):
     hosts = {"127.0.0.1:{}".format(port), "localhost:{}".format(port)}
 
     class Handler(BaseHTTPRequestHandler):
@@ -115,10 +143,14 @@ def make_handler(token: str, port: int, env_path: Optional[str] = None, send=an.
             return self._json({"ok": False, "message": "없음"}, 404)
 
         def do_POST(self):
-            if self.path != "/api/send" or not self._allowed(True):
+            if self.path not in ("/api/send", "/api/notify") or not self._allowed(True):
                 return self._json({"ok": False, "message": "허용되지 않은 요청"}, 403)
             try:
                 body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
+                if self.path == "/api/notify":  # 요청·공지: 적은 그대로, 기본 직원에게
+                    out = notify(str(body.get("text") or ""), to=str(body.get("to") or "others"),
+                                 dry_run=bool(body.get("dry_run")), env_path=env_path)
+                    return self._json({"ok": True, **out})
                 out = send(dry_run=bool(body.get("dry_run")), env_path=env_path, text=str(body.get("text") or ""),
                            to=str(body.get("to") or "all"))
                 return self._json({"ok": True, **out})
@@ -132,7 +164,7 @@ def serve(port: int = 8765, env_path: Optional[str] = None, open_browser: bool =
     token = secrets.token_urlsafe(24)
     httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(token, port, env_path))
     url = "http://127.0.0.1:{}/".format(port)
-    print("사각사각 안내 보내기: " + url + "  (끄기: Ctrl+C)")
+    print("사각사각 안내·알림 보내기: " + url + "  (끄기: Ctrl+C)")
     if open_browser:
         webbrowser.open(url)
     try:
