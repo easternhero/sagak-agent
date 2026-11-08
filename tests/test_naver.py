@@ -2,6 +2,7 @@ import io
 import json
 import unittest
 import urllib.error
+import urllib.parse
 
 from sagak import naver
 
@@ -119,3 +120,39 @@ class SearchLinkTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RecheckTest(unittest.TestCase):
+    class Store:
+        def __init__(self, events):
+            self.events, self.set = events, []
+
+        def all_events(self):
+            return self.events
+
+        def set_map_url(self, pid, url):
+            self.set.append((pid, url))
+
+    def test_recheck(self):
+        hotel = [{"title": "그랜드호텔", "roadAddress": "서울 용산구 예시로 1 2층"}]
+        store = self.Store([
+            {"id": "a", "title": "A", "venue": "그랜드호텔", "map_url": "https://map.naver.com/p/search/x", "status": "상담진행중"},
+            {"id": "b", "title": "B", "venue": "없는곳", "map_url": "https://map.naver.com/p/search/y", "status": "상담진행중"},
+            {"id": "c", "title": "C", "venue": "그랜드호텔", "map_url": "https://map.naver.com/p/search/z", "status": "이벤트취소"},
+        ])
+
+        def op(req, timeout=None):
+            q = req.full_url
+            return Resp(json.dumps({"items": hotel if "%EA%B7%B8%EB%9E%9C%EB%93%9C" in q else []}).encode())
+        out = naver.recheck(store, opener=op, env=ENV)
+        self.assertEqual([o["title"] for o in out], ["A", "B"])
+        self.assertTrue(store.set[0][1].endswith("%EC%98%88%EC%8B%9C%EB%A1%9C%201"))
+        self.assertEqual(store.set[1], ("b", None))
+
+    def test_name_dot_address_split(self):
+        items = [{"title": "어떤카페", "roadAddress": "서울 강남구 예시로77길 34"}]
+
+        def op(req, timeout=None):
+            return Resp(json.dumps({"items": items if "77" in urllib.parse.unquote(req.full_url) else []}).encode())
+        link = naver.confirmed_search_link("없는카페 · 서울 강남구 예시로77길 34", op, ENV)
+        self.assertIsNotNone(link)

@@ -7,6 +7,7 @@
   python3 -m sagak transcribe <녹음 파일>     녹음을 구간 시간이 있는 전사로 (lines: "[mm:ss] 화자: 내용")
   python3 -m sagak history <연락처>         그 고객의 이벤트·이전 상담 전체 (기록 전 확인용, Notion에 쓰지 않음)
   python3 -m sagak sweep [--dry-run] [--test] 모든 이벤트를 점검 규칙으로 정리 (기록 때 자동 실행, --test는 테스트 건만)
+  python3 -m sagak recheck-maps [--dry-run]  모든 이벤트 지도 링크를 네이버로 다시 확인 (확인 안 된 자동 링크는 지움)
   python3 -m sagak cleanup-test [--dry-run]  [테스트] 고객·이벤트·상담을 한꺼번에 휴지통으로
   python3 -m sagak ping                      Notion 키와 DB 접근 확인
   python3 -m sagak products                  업체 설정의 브랜드·상품명·고객 안내 이름 보기
@@ -95,8 +96,9 @@ def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     cmd = argv[0] if argv else None
     if cmd not in ("check", "record", "resolve", "transcribe", "ping", "announce", "console", "products",
-                   "history", "sweep", "cleanup-test") or (
-            cmd not in ("ping", "announce", "console", "products", "sweep", "cleanup-test") and len(argv) < 2):
+                   "history", "sweep", "cleanup-test", "recheck-maps") or (
+            cmd not in ("ping", "announce", "console", "products", "sweep", "cleanup-test", "recheck-maps")
+            and len(argv) < 2):
         print(__doc__)
         return 1
     try:
@@ -130,6 +132,11 @@ def main(argv=None) -> int:
             from . import sweep
             _print({"ok": True, **sweep.run(NotionStore.from_env(), dry_run="--dry-run" in argv,
                                             scope="test" if "--test" in argv else "real")})
+            return 0
+        if cmd == "recheck-maps":
+            from . import naver
+            _print({"ok": True, "dry_run": "--dry-run" in argv,
+                    "events": naver.recheck(NotionStore.from_env(), dry_run="--dry-run" in argv)})
             return 0
         if cmd == "cleanup-test":
             store = NotionStore.from_env()

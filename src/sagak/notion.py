@@ -266,6 +266,10 @@ class NotionStore:
                 return out
             cursor = res.get("next_cursor")
 
+    def set_map_url(self, page_id: str, url: Optional[str]) -> None:
+        """지도 링크를 바꾸거나 비운다(None)."""
+        self._request("PATCH", "/pages/{}".format(page_id), {"properties": {"지도 링크": {"url": url}}})
+
     def append_event_note(self, page_id: str, heading: str, lines: list) -> None:
         self._request("PATCH", "/blocks/{}/children".format(page_id), {"children": to_blocks([(heading, lines)])})
 

@@ -75,6 +75,16 @@ def search_places(query: str, opener=None, env=None) -> Optional[list]:
 
 
 def confirmed_search_link(venue: str, opener=None, env=None) -> Optional[str]:
+    """'이름 · 주소'처럼 함께 적혔으면 나눠서 이름 → 주소 순으로 확인한다."""
+    parts = [p.strip() for p in re.split(r"\s+·\s+|\s*/\s*", venue or "") if p.strip()]
+    for cand in ([venue] if len(parts) < 2 else parts):
+        link = _confirmed_one(cand, opener, env)
+        if link:
+            return link
+    return None
+
+
+def _confirmed_one(venue: str, opener=None, env=None) -> Optional[str]:
     """장소명이면 이름이 맞는 곳이 딱 하나일 때, 주소면 그 주소의 장소가 있을 때만 검색 링크."""
     from .record import naver_search_url
     items = search_places(venue, opener, env)
@@ -97,7 +107,7 @@ def confirmed_search_link(venue: str, opener=None, env=None) -> Optional[str]:
         return None
     place = same[0]
     title = re.sub(r"</?b>", "", place.get("title") or "")
-    return naver_search_url("{} {}".format(title, place.get("roadAddress") or place.get("address") or "").strip())
+    return naver_search_url("{} {}".format(title, base_address(place)).strip())
 
 
 def verify(record: dict, opener=None, env=None) -> str:
@@ -115,3 +125,33 @@ def verify(record: dict, opener=None, env=None) -> str:
     link = confirmed_search_link(ev.get("venue") or "", opener, env)
     ev["map_url"] = link
     return "search_ok" if link else "search_unsure"
+
+
+SEARCH_PREFIX = "https://map.naver.com/p/search/"
+
+
+def recheck(store, dry_run: bool = False, opener=None, env=None) -> list:
+    """노션의 모든 이벤트 지도 링크를 다시 확인한다 (D52).
+    - 자동 검색 링크·빈칸: 확인되면 그 링크, 아니면 비움
+    - 직원이 넣은 링크: 열리면 그대로, 안 열리면 알림만(지우지 않음)
+    취소·완료 이벤트는 건너뛴다."""
+    out = []
+    for e in store.all_events():
+        if e.get("status") in ("이벤트취소", "이벤트완료") or not e.get("venue"):
+            continue
+        old = e.get("map_url") or None
+        item = {"title": e.get("title"), "url": e.get("url"), "old": old}
+        if old and not old.startswith(SEARCH_PREFIX):
+            item["result"] = "직원 링크 열림" if staff_link_ok(old, opener) else "직원 링크 안 열림(그대로 둠)"
+            out.append(item)
+            continue
+        new = confirmed_search_link(e["venue"], opener, env)
+        if new == old:
+            item["result"] = "확인됨(그대로)" if new else "확인 안 됨(빈칸 유지)"
+        else:
+            item["new"] = new
+            item["result"] = "확인된 링크로 바꿈" if new else "확인 안 돼 지움"
+            if not dry_run:
+                store.set_map_url(e["id"], new)
+        out.append(item)
+    return out
