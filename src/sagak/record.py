@@ -208,7 +208,8 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         flag("희망 장소")
     if event["deposit"] is not None:
         flag("예약금")  # 안내한 금액일 뿐 입금 확인이 아님
-    # 지도 링크: 직원이 보낸 네이버 지도 링크 > 확인된 장소의 검색 링크 (D30)
+    # 지도 링크 후보: 직원이 보낸 네이버 지도 링크 > 확인된 장소의 검색 링크 (D30).
+    # 기록 직전에 naver.verify가 실제로 확인하고, 확실하지 않으면 비운다 (D48)
     staff_url = naver_map_url(ev.get("venue_url"))
     if staff_url:
         event["map_url"] = staff_url

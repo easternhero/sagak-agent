@@ -160,12 +160,15 @@ def main(argv=None) -> int:
         store = NotionStore.from_env()
         from . import clips
         clip_info = clips.attach(record, store)
+        from . import naver
+        map_status = naver.verify(record)
         p = plan(record, store)
         out = apply(record, p, store)
         if out["review"] == "고객 연결 필요":
             pending.save(out["consultation"]["id"], record, p["candidates"])
             out["pending"] = True
         out["sweep"] = _sweep(store, record)
+        out["map_link"] = map_status
         if clip_info.get("clips") or clip_info.get("error"):
             out["audio_clips"] = clip_info
         _print({"ok": True, **out})
