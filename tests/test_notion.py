@@ -97,3 +97,25 @@ class DateFormatTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ProductPlacesTest(unittest.TestCase):
+    def test_reads_products_db(self):
+        import os
+        page = {"id": "p", "properties": {
+            "상품명": {"type": "title", "title": [{"plain_text": "레스토랑패키지"}]},
+            "네이버 지도": {"type": "url", "url": "https://naver.me/x"},
+            "장소": {"type": "rich_text", "rich_text": [{"plain_text": "예시 · 서울 중구 예시로 1"}]}}}
+        opener = FakeOpener([{"results": [page]}])
+        store = NotionStore("tok", "c", "e", "s", opener=opener)
+        os.environ["SAGAK_NOTION_PRODUCTS_DB"] = "dbp"
+        try:
+            places = store.product_places()
+        finally:
+            del os.environ["SAGAK_NOTION_PRODUCTS_DB"]
+        self.assertEqual(places, {"레스토랑패키지": {"map_url": "https://naver.me/x", "venue": "예시 · 서울 중구 예시로 1"}})
+        self.assertTrue(opener.calls[0][1].endswith("/databases/dbp/query"))
+
+    def test_no_db_no_call(self):
+        store = NotionStore("tok", "c", "e", "s", opener=FakeOpener([]))
+        self.assertEqual(store.product_places(), {})

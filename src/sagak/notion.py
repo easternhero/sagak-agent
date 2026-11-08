@@ -266,6 +266,22 @@ class NotionStore:
                 return out
             cursor = res.get("next_cursor")
 
+    def product_places(self) -> dict:
+        """노션 '상품' DB(SAGAK_NOTION_PRODUCTS_DB)의 상품명 → 네이버 지도 링크·장소. DB가 없으면 빈 값 (D54)."""
+        db = os.environ.get("SAGAK_NOTION_PRODUCTS_DB")
+        if not db:
+            return {}
+        out = {}
+        res = self._request("POST", "/databases/{}/query".format(db), {"page_size": 100})
+        for page in res.get("results", []):
+            props = page.get("properties", {})
+            name = from_property(props.get("상품명", {"type": "title", "title": []}))
+            if not name:
+                continue
+            out[name] = {"map_url": from_property(props["네이버 지도"]) if "네이버 지도" in props else None,
+                         "venue": from_property(props["장소"]) if "장소" in props else None}
+        return out
+
     def set_map_url(self, page_id: str, url: Optional[str]) -> None:
         """지도 링크를 바꾸거나 비운다(None)."""
         self._request("PATCH", "/pages/{}".format(page_id), {"properties": {"지도 링크": {"url": url}}})

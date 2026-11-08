@@ -82,6 +82,15 @@ def _resolve(args: list) -> dict:
     return out
 
 
+def _use_places(store) -> None:
+    """노션 '상품' DB를 못 읽어도 기록은 계속한다(업체 설정 파일 값으로)."""
+    from . import business
+    try:
+        business.use_places(store.product_places())
+    except NotionError:
+        pass
+
+
 def _sweep(store, record: dict) -> dict:
     """기록 뒤 전체 이벤트 점검. 테스트 기록이면 테스트 이벤트만, 아니면 테스트 제외 (D44).
     실패해도 기록 결과는 그대로 돌려준다."""
@@ -142,8 +151,10 @@ def main(argv=None) -> int:
             return 0
         if cmd == "recheck-maps":
             from . import naver
+            store = NotionStore.from_env()
+            _use_places(store)
             _print({"ok": True, "dry_run": "--dry-run" in argv,
-                    "events": naver.recheck(NotionStore.from_env(), dry_run="--dry-run" in argv)})
+                    "events": naver.recheck(store, dry_run="--dry-run" in argv)})
             return 0
         if cmd == "cleanup-test":
             store = NotionStore.from_env()
@@ -167,11 +178,14 @@ def main(argv=None) -> int:
         if cmd == "resolve":
             _print({"ok": True, **_resolve(argv[1:])})
             return 0
+        store = None
+        if cmd == "record":  # 노션 '상품' DB의 지도 링크·장소를 먼저 읽는다 (D54)
+            store = NotionStore.from_env()
+            _use_places(store)
         record = build_record(_load(argv[1]))
         if cmd == "check":
             _print({"ok": True, "record": record})
             return 0
-        store = NotionStore.from_env()
         from . import clips
         clip_info = clips.attach(record, store)
         from . import naver

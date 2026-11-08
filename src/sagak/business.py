@@ -69,6 +69,16 @@ def venue_of(product: Optional[str]) -> Optional[str]:
     return load().get("venues", {}).get(product) if product else None
 
 
+def use_places(places: dict) -> None:
+    """노션 '상품' DB에서 읽은 {상품명: {"map_url", "venue"}}를 업체 설정보다 우선해 쓴다 (D54)."""
+    data = load()
+    for name, p in (places or {}).items():
+        if p.get("map_url"):
+            data.setdefault("map_urls", {})[name] = p["map_url"]
+        if p.get("venue"):
+            data.setdefault("venues", {})[name] = p["venue"]
+
+
 def map_url_of(product: Optional[str]) -> Optional[str]:
     """상품의 네이버 장소 링크. 없으면 None."""
     return load().get("map_urls", {}).get(product) if product else None

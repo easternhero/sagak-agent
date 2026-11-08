@@ -177,3 +177,17 @@ class ProductPlaceTest(unittest.TestCase):
         data["event"]["product"] = "레스토랑 프로포즈"
         data["event"]["venue_url"] = "https://naver.me/staff"
         self.assertEqual(build_record(data)["event"]["map_url"], "https://naver.me/staff")
+
+
+class NotionPlacesTest(unittest.TestCase):
+    def test_notion_places_override(self):
+        from sagak import business
+        from tests.helpers import load
+        from sagak.record import build_record
+        business.use_places({"호텔패키지": {"map_url": "https://naver.me/fromnotion", "venue": None}})
+        try:
+            data = load("s01")
+            data["event"]["product"] = "호텔 프로포즈"
+            self.assertEqual(build_record(data)["event"]["map_url"], "https://naver.me/fromnotion")
+        finally:
+            business.load()["map_urls"].pop("호텔패키지", None)
