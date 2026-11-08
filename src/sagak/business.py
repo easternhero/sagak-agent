@@ -34,7 +34,8 @@ def load(path: Optional[str] = None) -> dict:
             if a:
                 aliases[_key(a)] = p["name"]
     data = {"brands": list(raw.get("brands", [])), "products": products, "aliases": aliases,
-            "guide": {p["name"]: list(p.get("aliases", [])) for p in raw.get("products", []) if p.get("name")}}
+            "guide": {p["name"]: list(p.get("aliases", [])) for p in raw.get("products", []) if p.get("name")},
+            "themes": {p["name"]: p["theme"] for p in raw.get("products", []) if p.get("name") and p.get("theme")}}
     _cache[path] = data
     return data
 
@@ -44,6 +45,13 @@ def product_of(value: Optional[str]) -> Optional[str]:
     if not value:
         return None
     return load()["aliases"].get(_key(value))
+
+
+def theme_of(product: Optional[str]) -> Optional[str]:
+    """관리 페이지 상품명 → 업체 설정의 이벤트 테마. 설정이 없으면 None(추출값을 쓴다)."""
+    if not product:
+        return None
+    return load().get("themes", {}).get(product)
 
 
 def brand_of(value: Optional[str]) -> Optional[str]:

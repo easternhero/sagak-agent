@@ -14,6 +14,7 @@ from .normalize import match_staff, normalize_name
 OPEN_STATUSES = ("상담진행중", "추후연락", "이벤트진행예정")
 NEW_EVENT_STATUS = "상담진행중"
 BLACKLIST = "B 블랙리스트"
+NEED_LINK = "고객 연결 필요"  # 같은 고객인지 사람이 골라야 하는 상담의 검토 상태
 
 # 기록 키 → 사람이 읽는 이름 (차이 표시용)
 CUSTOMER_LABELS = {"email": "전자메일", "company": "회사·단체명", "customer_type": "고객 구분"}
@@ -22,9 +23,9 @@ EVENT_LABELS = {
     "product": "희망 이벤트",
     "venue": "희망 장소",
     "desired_at": "희망 일시",
-    "budget": "예상 금액",
+    "budget": "고객 예산",
     "deposit": "예약금액",
-    "confirmed_at": "날짜(확정)",
+    "confirmed_at": "확정 일시",
     "brand": "제휴",
 }
 # 서술형 항목은 비어 있을 때만 채우고, 다르더라도 차이로 표시하지 않는다 (상담 내역에 이미 남음)
@@ -68,7 +69,7 @@ def plan(record: dict, store) -> dict:
     result = {"customer": None, "event": None, "diffs": [], "candidates": [], "review": "확인 대기"}
 
     def need_person(label: str, candidates: list) -> None:
-        result["review"] = "고객 확인 필요"
+        result["review"] = NEED_LINK
         result["candidates"].extend(candidates)
         if label not in needs_check:
             needs_check.append(label)
@@ -225,7 +226,7 @@ def _write_event(event_plan: dict, name: str, store, customer_id: str) -> dict:
 
 def resolve(record: dict, consultation_id: str, decision: str, store, customer_id: Optional[str] = None,
             event_id: Optional[str] = None, by: Optional[str] = None) -> dict:
-    """'고객 확인 필요'로 남은 상담을 사람의 답에 따라 연결한다.
+    """'고객 연결 필요'로 남은 상담을 사람의 답에 따라 연결한다.
 
     decision: same(기존 고객과 같은 사람) | separate(별도 고객).
     고객 이름은 바꾸지 않는다(같은 고객이면 기존 이름 유지, 접수명은 기록에만 남김).

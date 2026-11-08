@@ -3,7 +3,7 @@
   python3 -m sagak record  <추출.json | ->   검증 후 Notion에 기록하고 결과 JSON 출력
   python3 -m sagak resolve <상담 링크> same [--customer <고객 링크>] [--event <이벤트 링크>] [--by <확인자>]
   python3 -m sagak resolve <상담 링크> separate [--by <확인자>]
-                                           '고객 확인 필요' 상담을 같은 고객/별도 고객으로 연결
+                                           '고객 연결 필요' 상담을 같은 고객/별도 고객으로 연결
   python3 -m sagak transcribe <녹음 파일>     녹음을 구간 시간이 있는 전사로 (lines: "[mm:ss] 화자: 내용")
   python3 -m sagak ping                      Notion 키와 DB 접근 확인
   python3 -m sagak products                  업체 설정의 브랜드·상품명·고객 안내 이름 보기
@@ -114,7 +114,7 @@ def main(argv=None) -> int:
         store = NotionStore.from_env()
         p = plan(record, store)
         out = apply(record, p, store)
-        if out["review"] == "고객 확인 필요":
+        if out["review"] == "고객 연결 필요":
             pending.save(out["consultation"]["id"], record, p["candidates"])
             out["pending"] = True
         _print({"ok": True, **out})

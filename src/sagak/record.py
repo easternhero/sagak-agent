@@ -16,7 +16,7 @@ KST = timezone(timedelta(hours=9))
 THEMES = ("프로포즈", "생일/기념일", "기타")
 # 접수 브랜드(노션 '제휴')와 상품명('희망 이벤트')은 업체별 설정 agent/business.json에서 읽는다 (business.py).
 CUSTOMER_TYPES = ("개인", "기업")
-INPUT_TYPES = ("녹음", "전사 텍스트")
+INPUT_TYPES = ("녹음", "전사 텍스트", "대화")  # 대화 = 카톡·채팅 내보내기, 직원 메모
 # Notion '확인 필요' 태그로 쓰는 고정 목록. 그 밖의 항목은 '추가 질문'으로 옮긴다 (태그가 끝없이 늘지 않게).
 CHECK_LABELS = ("희망 일시", "희망 장소", "예산", "예약금", "이벤트 테마", "다음 연락 시점", "고객 연결", "이벤트 연결", "기존 정보와 다름")
 
@@ -147,18 +147,20 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         questions.append("희망 장소 확인: " + venue_note)
         flag("희망 장소")
 
-    theme = _choice(ev.get("theme"), THEMES)
+    # 상품이 정해지면 테마는 업체 설정의 상품 테마를 따른다 (D36)
+    product = product_of(ev.get("product"))
+    theme = business.theme_of(product) or _choice(ev.get("theme"), THEMES)
     if theme is None:
         flag("이벤트 테마")
     event = {
         "theme": theme,
-        "product": product_of(ev.get("product")),
+        "product": product,
         "venue": venue,
         "desired_at": _iso(ev.get("desired_at")),
         "desired_at_text": _text(ev.get("desired_at_text")),
         "budget": _int(ev.get("budget")),
         "deposit": _int(ev.get("deposit")),
-        "confirmed_at": _iso(ev.get("confirmed_at")),  # 통화에서 확정한 일시만 (노션 '날짜')
+        "confirmed_at": _iso(ev.get("confirmed_at")),  # 통화에서 확정한 일시만 (노션 '확정 일시')
         "brand": business.brand_of(_text(ev.get("brand"))),
         "notes": mask_numbers(_join([_text(n) for n in (ev.get("notes") or []) if _text(n)]) if isinstance(
             ev.get("notes"), list) else _text(ev.get("notes"))),
@@ -173,8 +175,7 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
     event["desired_at"] = nearest_future(event["desired_at"], event["desired_at_text"], consulted_at)
     if event["desired_at"] is None:
         flag("희망 일시")
-    if event["budget"] is None:
-        flag("예산")
+    # 고객이 예산을 말하지 않는 경우가 대부분이라 빠졌다고 표시하지 않는다 (D35)
     if event["venue"] is None:
         flag("희망 장소")
     if event["deposit"] is not None:

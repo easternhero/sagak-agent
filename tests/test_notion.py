@@ -59,7 +59,7 @@ class NotionTest(unittest.TestCase):
         self.assertEqual(body1["filter"]["phone_number"]["equals"], "010-0000-1111")
         self.assertEqual(body2["parent"], {"database_id": "dbe"})
         self.assertEqual(body2["properties"]["고객"], {"relation": [{"id": "c9"}]})
-        self.assertNotIn("예상 금액", body2["properties"])
+        self.assertNotIn("고객 예산", body2["properties"])
 
 
 class MapLinkPropTest(unittest.TestCase):

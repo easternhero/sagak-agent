@@ -42,7 +42,7 @@ class RecordTest(unittest.TestCase):
         self.assertIsNone(r["event"]["budget"])
         self.assertIsNone(r["event"]["desired_at"])
         self.assertIn("희망 일시", r["consultation"]["needs_check"])
-        self.assertIn("예산", r["consultation"]["needs_check"])
+        self.assertNotIn("예산", r["consultation"]["needs_check"])  # 예산을 말하지 않은 건 표시하지 않음 (D35)
 
     def test_s05_no_customer_info(self):
         with self.assertRaises(InputError) as ctx:
@@ -58,8 +58,23 @@ class RecordTest(unittest.TestCase):
         self.assertIsNone(r["event"]["theme"])
         self.assertIsNone(r["event"]["budget"])
         self.assertIsNone(r["event"]["desired_at"])
-        for label in ("이벤트 테마", "예산", "희망 일시"):
+        for label in ("이벤트 테마", "희망 일시"):
             self.assertIn(label, r["consultation"]["needs_check"])
+
+    def test_theme_follows_product(self):
+        data = load("s01")
+        data["event"]["theme"] = "기타"
+        data["event"]["product"] = "호텔 프로포즈"
+        r = build_record(data)
+        self.assertEqual(r["event"]["product"], "호텔패키지")
+        self.assertEqual(r["event"]["theme"], "프로포즈")  # 업체 설정의 상품 테마가 우선 (D36)
+        data["event"]["product"] = "출장 렌탈"  # 테마 설정이 없는 상품은 추출값
+        self.assertEqual(build_record(data)["event"]["theme"], "기타")
+
+    def test_chat_input_type(self):
+        data = load("s02")
+        data["input_type"] = "대화"
+        self.assertEqual(build_record(data)["consultation"]["input_type"], "대화")
 
     def test_default_next_contact(self):
         r = build_record(load("s02"))

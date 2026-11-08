@@ -28,10 +28,10 @@ EVENT_PROPS = {
     "venue": ("희망 장소", "rich_text"),
     "desired_at": ("희망 일시", "date"),
     "desired_at_text": ("희망 일시(원문)", "rich_text"),
-    "budget": ("예상 금액", "number"),
+    "budget": ("고객 예산", "number"),  # 고객이 말한 예산 (사람이 넣는 '확정 금액'과 구분)
     "deposit": ("예약금액", "number"),  # 고객사가 만든 칸
     "map_url": ("지도 링크", "url"),
-    "confirmed_at": ("날짜", "date"),      # 확정 일시 (고객사가 만든 칸)
+    "confirmed_at": ("확정 일시", "date"),  # 예약이 확정된 일시 (캘린더 기준)
     "brand": ("제휴", "select"),            # 접수 브랜드
     "notes": ("특이사항", "rich_text"),     # 현장에서 챙길 것
     "request": ("문의 및 신청사항", "rich_text"),

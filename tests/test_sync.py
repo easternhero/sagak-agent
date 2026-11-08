@@ -119,7 +119,7 @@ class SyncTest(unittest.TestCase):
         self.assertIsNone(out["customer"])
         self.assertIsNone(out["event"])
         self.assertIsNone(out["consultation"]["round"])
-        self.assertEqual(out["review"], "고객 확인 필요")
+        self.assertEqual(out["review"], "고객 연결 필요")
         self.assertIn("고객 연결", out["needs_check"])
         self.assertEqual(len(store.customers), 1)
         self.assertEqual(out["consultation"]["title"], "11/06 김민지 · 연결 확인 필요")
@@ -132,7 +132,7 @@ class SyncTest(unittest.TestCase):
         out = run(store, "s02")
         self.assertEqual(out["customer"]["action"], "link")
         self.assertIsNone(out["event"])
-        self.assertEqual(out["review"], "고객 확인 필요")
+        self.assertEqual(out["review"], "고객 연결 필요")
         self.assertEqual(len(out["candidates"]), 2)
 
     def test_finished_event_starts_new_event(self):
@@ -164,7 +164,7 @@ class SyncTest(unittest.TestCase):
 
 
 def unresolved(store):
-    """s01 기록 후, 같은 번호·다른 이름으로 생일 문의 → 고객 확인 필요 상태."""
+    """s01 기록 후, 같은 번호·다른 이름으로 생일 문의 → 고객 연결 필요 상태."""
     run(store, "s01")
     data = load("s04")
     data["caption"] = "김민지 / 010-0000-1111"
