@@ -106,7 +106,11 @@ def main(argv=None) -> int:
         if cmd == "products":
             from . import business
             data = business.load()
-            _print({"ok": True, "brands": data["brands"], "products": data["guide"]})  # 상품명: [고객 안내 이름]
+            groups = {}
+            for g in data["groups"].values():
+                groups[g["name"]] = g["choices"]
+            _print({"ok": True, "brands": data["brands"], "products": data["guide"],  # 상품명: [고객 안내 이름]
+                    "groups": groups, "channels": list(data["channels"].values())})
             return 0
         if cmd == "console":
             from .console import serve

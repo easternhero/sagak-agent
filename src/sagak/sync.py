@@ -31,6 +31,8 @@ EVENT_LABELS = {
 # 서술형 항목은 비어 있을 때만 채우고, 다르더라도 차이로 표시하지 않는다 (상담 내역에 이미 남음)
 EVENT_FILL_ONLY = {"desired_at_text": "희망 일시(원문)", "request": "문의 및 신청사항", "map_url": "지도 링크"}
 SEARCH_PREFIX = "https://map.naver.com/p/search/"
+# 확인 필요 항목 → 이벤트 칸. 이번 상담에 없어도 기존 이벤트에 값이 있으면 표시하지 않는다
+FILLED_BY = {"희망 일시": "desired_at", "희망 장소": "venue", "이벤트 테마": "theme", "희망 상품": "product"}
 
 
 def _same(old, new) -> bool:
@@ -78,15 +80,19 @@ def plan(record: dict, store) -> dict:
     same = [c for c in found if normalize_name(c.get("name")) == normalize_name(cust["name"])]
     result["warnings"] = warnings_for(found)
 
+    channel = record.get("channel")
     if len(same) == 1:
         to_set, diffs = merge(same[0], cust, CUSTOMER_LABELS, "고객")
+        marks = list(same[0].get("marks") or [])
+        if channel and channel not in marks:  # 접수 경로는 덧붙이기만 (D46)
+            to_set["marks"] = marks + [channel]
         result["customer"] = {"action": "link", "id": same[0]["id"], "url": same[0].get("url"), "set": to_set}
         result["diffs"].extend(diffs)
     elif found:
         # 연락처는 같은데 이름이 다르거나, 같은 고객이 여러 명 → 사람이 판단
         need_person("고객 연결", [{"type": "고객", "id": c["id"], "title": c.get("name"), "url": c.get("url")} for c in found])
     else:
-        result["customer"] = {"action": "create", "set": dict(cust)}
+        result["customer"] = {"action": "create", "set": dict(cust, marks=[channel] if channel else None)}
 
     round_no = 1
     if result["customer"] and result["customer"]["action"] == "link":
@@ -97,6 +103,8 @@ def plan(record: dict, store) -> dict:
             result["event"] = choice["event"]
             result["diffs"].extend(choice["diffs"])
             round_no = choice["round"]
+            # 이번에 말하지 않았지만 기존 이벤트에 이미 있는 칸은 '확인 필요'에서 뺀다
+            needs_check[:] = [l for l in needs_check if l not in choice.get("satisfied", [])]
     elif result["customer"]:
         result["event"] = {"action": "create", "set": _new_event(ev, co)}
 
@@ -139,8 +147,10 @@ def choose_event(record: dict, events: list) -> dict:
         new_url, old_url = ev.get("map_url"), e.get("map_url") or ""
         if new_url and old_url.startswith(SEARCH_PREFIX) and not new_url.startswith(SEARCH_PREFIX):
             to_set["map_url"] = new_url
+        satisfied = [label for label, key in FILLED_BY.items() if ev.get(key) in (None, "") and e.get(key)]
         return {"event": {"action": "link", "id": e["id"], "url": e.get("url"), "set": to_set},
-                "diffs": diffs, "round": int(e.get("consult_count") or 0) + 1, "candidates": []}
+                "diffs": diffs, "round": int(e.get("consult_count") or 0) + 1, "candidates": [],
+                "satisfied": satisfied}
     if len(matching) > 1:
         return {"event": None, "diffs": [], "round": None, "candidates": [
             {"type": "이벤트", "id": e["id"], "title": e.get("title"), "url": e.get("url")} for e in matching]}

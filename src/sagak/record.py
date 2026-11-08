@@ -42,7 +42,7 @@ THEMES = ("프로포즈", "생일/기념일", "기타")
 CUSTOMER_TYPES = ("개인", "기업")
 INPUT_TYPES = ("녹음", "전사 텍스트", "대화")  # 대화 = 카톡·채팅 내보내기, 직원 메모
 # Notion '확인 필요' 태그로 쓰는 고정 목록. 그 밖의 항목은 '추가 질문'으로 옮긴다 (태그가 끝없이 늘지 않게).
-CHECK_LABELS = ("희망 일시", "희망 장소", "예산", "예약금", "이벤트 테마", "다음 연락 시점", "고객 연결", "이벤트 연결", "기존 정보와 다름")
+CHECK_LABELS = ("희망 일시", "희망 장소", "예산", "예약금", "이벤트 테마", "희망 상품", "다음 연락 시점", "고객 연결", "이벤트 연결", "기존 정보와 다름")
 
 
 class InputError(Exception):
@@ -173,7 +173,11 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
 
     # 상품이 정해지면 테마는 업체 설정의 상품 테마를 따른다 (D36)
     product = product_of(ev.get("product"))
-    theme = business.theme_of(product) or _choice(ev.get("theme"), THEMES)
+    group = None if product else business.group_of(_text(ev.get("product")))
+    if group:  # 종류를 말하지 않은 상품 묶음: 비워 두고 묻는다 (D45)
+        flag("희망 상품")
+        questions.append("{} 중 어느 상품인가요? ({})".format(group["name"], "·".join(group["choices"])))
+    theme = business.theme_of(product) or (group or {}).get("theme") or _choice(ev.get("theme"), THEMES)
     if theme is None:
         flag("이벤트 테마")
     event = {
@@ -245,7 +249,7 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
     for e in evidence:
         e["quote"] = mask_numbers(e["quote"])
 
-    return {
+    out = {
         "customer": customer,
         "event": event,
         "consultation": consultation,
@@ -253,5 +257,23 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         # 파일이 있으면 파일 원문 그대로, 없을 때만 모델이 옮긴 원문 (D42)
         "transcript": mask_numbers(read_transcript(data.get("transcript_file")) or _text(data.get("transcript"))),
         "transcript_file": _text(data.get("transcript_file")),
+        "channel": None,
         "audio_file": _text(data.get("audio_file")),
     }
+    out["channel"] = channel_of(data, out["transcript"])
+    return out
+
+
+def channel_of(data: dict, transcript: Optional[str]) -> Optional[str]:
+    """접수 경로 표시 (D46). 모델이 고른 값이 업체 설정에 있으면 그것, 없으면 분명한 경우만 자동:
+    녹음 → 전화, 채널 상담 내보내기 파일('OO 님과의 상담' / '저장한 날짜') → 카카오채널."""
+    ch = business.channels()
+    picked = _text((data.get("customer") or {}).get("channel"))
+    if picked and picked in ch.values():
+        return picked
+    if data.get("input_type") == "녹음" and ch.get("phone"):
+        return ch["phone"]
+    head = [l.strip() for l in (transcript or "").splitlines() if l.strip()][:3]
+    if len(head) >= 2 and head[0].endswith("님과의 상담") and head[1].startswith("저장한 날짜") and ch.get("kakao"):
+        return ch["kakao"]
+    return None

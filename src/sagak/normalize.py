@@ -29,8 +29,13 @@ LONG_NUMBER_RE = re.compile(r"(?<![\d-])(?:\d{4}[ -]\d{4}[ -]\d{4}[ -]\d{4}|\d(?
 MASK = "[번호 가림]"
 
 
+# 띄어 쓴 계좌번호(예: 302 0591 8134 21). 시각·날짜(콜론·하이픈·점)와 붙은 숫자는 제외
+SPACED_NUMBER_RE = re.compile(r"(?<![\d:.\-])\d{2,6}(?: \d{2,6}){1,5}(?![\d:.\-])")
+URL_RE = re.compile(r"https?://\S+")
+
+
 def mask_numbers(text: Optional[str]) -> Optional[str]:
-    """계좌번호·카드번호처럼 긴 번호를 가린다. 휴대폰 번호는 그대로."""
+    """계좌번호·카드번호처럼 긴 번호를 가린다. 휴대폰 번호와 링크(URL) 속 숫자는 그대로."""
     if not text:
         return text
 
@@ -39,7 +44,19 @@ def mask_numbers(text: Optional[str]) -> Optional[str]:
         if re.fullmatch(r"01[016789]\d{7,8}", digits):
             return m.group(0)
         return MASK
-    return LONG_NUMBER_RE.sub(repl, text)
+
+    def spaced(m):
+        digits = re.sub(r"\D", "", m.group(0))
+        return repl(m) if 10 <= len(digits) <= 20 else m.group(0)
+
+    parts, last = [], 0
+    for u in URL_RE.finditer(text):
+        chunk = text[last:u.start()]
+        parts.append(SPACED_NUMBER_RE.sub(spaced, LONG_NUMBER_RE.sub(repl, chunk)))
+        parts.append(u.group(0))
+        last = u.end()
+    parts.append(SPACED_NUMBER_RE.sub(spaced, LONG_NUMBER_RE.sub(repl, text[last:])))
+    return "".join(parts)
 
 
 TITLE_RE = re.compile(r"(님|씨|대표님?|실장님?|팀장님?|과장님?|매니저님?)$")
