@@ -36,6 +36,7 @@ EVENT_PROPS = {
     "notes": ("특이사항", "rich_text"),     # 현장에서 챙길 것
     "request": ("문의 및 신청사항", "rich_text"),
     "status": ("이벤트 상태", "select"),
+    "payment_status": ("결제 상태", "select"),  # 사람이 입력. 봇은 읽기만 (점검 규칙, D41)
     "requested_on": ("의뢰일", "date"),
 }
 CONSULT_PROPS = {
@@ -214,6 +215,37 @@ class NotionStore:
             rel = page.get("properties", {}).get("상담 이력", {})
             e["consult_count"] = len(rel.get("relation") or [])
             out.append(e)
+        return out
+
+    def all_events(self) -> list:
+        """점검용: 모든 이벤트 (페이지 넘김)."""
+        out, cursor = [], None
+        while True:
+            body = {"page_size": 100}
+            if cursor:
+                body["start_cursor"] = cursor
+            res = self._request("POST", "/databases/{}/query".format(self.dbs["events"]), body)
+            out += [from_properties(p, EVENT_PROPS) for p in res.get("results", [])]
+            if not res.get("has_more"):
+                return out
+            cursor = res.get("next_cursor")
+
+    def append_event_note(self, page_id: str, heading: str, lines: list) -> None:
+        self._request("PATCH", "/blocks/{}/children".format(page_id), {"children": to_blocks([(heading, lines)])})
+
+    def history(self, phone: str) -> list:
+        """그 연락처 고객의 모든 이벤트와 상담 이력(오래된 순)."""
+        out = []
+        for c in self.find_customers(phone):
+            events = []
+            for page in self._query("events", {"property": "고객", "relation": {"contains": c["id"]}}):
+                e = from_properties(page, EVENT_PROPS)
+                cons = self._request("POST", "/databases/{}/query".format(self.dbs["consultations"]), {
+                    "filter": {"property": "이벤트", "relation": {"contains": e["id"]}},
+                    "sorts": [{"property": "상담 일시", "direction": "ascending"}]}).get("results", [])
+                e["consultations"] = [from_properties(p, CONSULT_PROPS) for p in cons]
+                events.append(e)
+            out.append(dict(c, events=events))
         return out
 
     def create_customer(self, fields: dict) -> dict:
