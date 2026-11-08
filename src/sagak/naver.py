@@ -28,6 +28,21 @@ def _key(text: str) -> str:
     return re.sub(r"[\s·&/()\-,.]", "", text.lower())
 
 
+ROAD_BASE_RE = re.compile(r"^(.+?(?:로|길)\s*\d+(?:-\d+)?)(?=\s|$)")
+LOT_BASE_RE = re.compile(r"^(.+?(?:동|리|가)\s*\d+(?:-\d+)?)(?=\s|$)")
+
+
+def base_address(item: dict) -> str:
+    """'서울 용산구 소월로 322 로비층' → '서울 용산구 소월로 322' (층·건물명 떼고 건물 번호까지)."""
+    road = (item.get("roadAddress") or "").strip()
+    m = ROAD_BASE_RE.match(road)
+    if m:
+        return m.group(1)
+    lot = (item.get("address") or "").strip()
+    m = LOT_BASE_RE.match(lot)
+    return m.group(1) if m else (road or lot)
+
+
 def staff_link_ok(url: str, opener=None) -> bool:
     """링크를 열어 네이버 장소 페이지(…/place/12345)에 닿으면 True."""
     req = urllib.request.Request(url, headers={"User-Agent": UA})
@@ -74,10 +89,9 @@ def confirmed_search_link(venue: str, opener=None, env=None) -> Optional[str]:
         same = [i for i in items if v in _key(i.get("title")) or (len(_key(i.get("title"))) >= 2 and _key(i.get("title")) in v)]
     if len(same) > 1:
         # 이름 후보가 여럿이어도 모두 같은 건물(같은 도로명 주소)이면 위치는 확실하다 (예: 호텔 안 식당들)
-        addrs = {_key(i.get("roadAddress") or i.get("address")) for i in same}
+        addrs = {_key(base_address(i)) for i in same}
         if len(addrs) == 1 and "" not in addrs:
-            addr = same[0].get("roadAddress") or same[0].get("address")
-            return naver_search_url("{} {}".format(venue, addr).strip())
+            return naver_search_url("{} {}".format(venue, base_address(same[0])).strip())
         return None
     if not same:
         return None

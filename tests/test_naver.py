@@ -87,6 +87,18 @@ class SearchLinkTest(unittest.TestCase):
         self.assertEqual(naver.verify(r, opener_for(items=items), env=ENV), "search_ok")
         self.assertIn("%EC%98%88%EC%8B%9C%EB%A1%9C", r["event"]["map_url"])
 
+    def test_same_building_with_floor_suffixes(self):
+        items = [{"title": "<b>예시 호텔</b> 키친", "roadAddress": "서울특별시 용산구 예시로 322 로비층"},
+                 {"title": "<b>예시 호텔</b> 갤러리", "roadAddress": "서울특별시 용산구 예시로 322 예시호텔 로비1층"},
+                 {"title": "<b>예시호텔</b> 델리", "roadAddress": "서울특별시 용산구 예시로 322"}]
+        r = record(self.SEARCH, venue="예시 호텔")
+        self.assertEqual(naver.verify(r, opener_for(items=items), env=ENV), "search_ok")
+        self.assertTrue(r["event"]["map_url"].endswith("%EC%98%88%EC%8B%9C%EB%A1%9C%20322"))
+
+    def test_base_address(self):
+        self.assertEqual(naver.base_address({"roadAddress": "서울특별시 용산구 예시로 322 로비층"}), "서울특별시 용산구 예시로 322")
+        self.assertEqual(naver.base_address({"roadAddress": "", "address": "서울특별시 용산구 예시동 747-7 2층"}), "서울특별시 용산구 예시동 747-7")
+
     def test_address_venue(self):
         items = [{"title": "어떤빌딩", "roadAddress": "서울특별시 강남구 테헤란로 152"}]
         r = record(self.SEARCH, venue="강남구 테헤란로 152")
