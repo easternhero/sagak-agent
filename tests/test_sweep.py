@@ -100,3 +100,12 @@ class ScopeTest(unittest.TestCase):
         now = datetime(2026, 11, 20, tzinfo=sweep.KST)
         self.assertEqual([c["id"] for c in sweep.run(s, now=now, dry_run=True, scope="test")["changes"]], ["t1"])
         self.assertEqual([c["id"] for c in sweep.run(s, now=now, dry_run=True, scope="real")["changes"]], ["e1"])
+
+
+class ClosedTest(unittest.TestCase):
+    def test_cancelled_not_filled(self):
+        self.assertEqual(sweep.check(ev(status="이벤트취소", payment_status="예약금 입금"), TODAY), ({}, [], []))
+
+    def test_done_no_warning(self):
+        e = ev(status="이벤트완료", desired_at="2026-12-24T00:00:00.000+09:00", desired_at_text="오후 4시")
+        self.assertEqual(sweep.check(e, TODAY), ({}, [], []))

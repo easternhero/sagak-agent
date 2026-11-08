@@ -19,6 +19,7 @@ DEPOSIT_PAID = "예약금 입금"
 PLANNED = "이벤트진행예정"
 DONE = "이벤트완료"
 BEFORE_DEPOSIT = ("상담진행중", "추후연락")
+CLOSED = ("이벤트취소", "이벤트완료")  # 끝난 이벤트는 점검하지 않는다 (취소 건은 캘린더에서도 뺌, D50)
 TIME_RE = re.compile(r"(?:오전|오후|저녁|아침|밤|낮)?\s*\d{1,2}\s*시(?:\s*\d{1,2}\s*분|\s*반)?|\b\d{1,2}:\d{2}\b")
 
 
@@ -52,6 +53,8 @@ def check(event: dict, today) -> tuple:
     """이벤트 하나 → (바꿀 칸, 바꾼 이유 목록, 알림 목록). 아무것도 바꾸지 않으면 빈 값."""
     fields, why, warns = {}, [], []
     pay, status = event.get("payment_status"), event.get("status")
+    if status in CLOSED:
+        return fields, why, warns
     desired, confirmed = event.get("desired_at"), event.get("confirmed_at")
     if pay == DEPOSIT_PAID and not confirmed and desired:
         confirmed = _same_value(desired)
