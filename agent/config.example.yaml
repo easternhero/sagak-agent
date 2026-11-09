@@ -44,6 +44,12 @@ stt:
   enabled: false   # 녹음은 사각사각 transcribe 명령이 구간 시간과 함께 전사
 skills:
   write_approval: true
+  # 프로필을 만들 때 깔리는 Hermes 기본 스킬은 끈다. 이름은 프로필 skills/ 폴더 기준 (hermes-agent는 Hermes가 항상 켬)
+  disabled:
+    - apple-notes
+    - github
+    - google-workspace
+    # ... 나머지 기본 스킬도 같은 식으로
   external_dirs:
     - /path/to/sagak-agent/agent/skills   # 레포 위치에 맞게
 telemetry:
