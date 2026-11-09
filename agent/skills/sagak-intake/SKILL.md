@@ -21,6 +21,12 @@ required_environment_variables:
   - name: SAGAK_OPENAI_STT_KEY
     prompt: "STT용 OpenAI 키 (Hermes 자체 음성 키는 보안상 넘겨받을 수 없어 별도 이름)"
     required_for: "녹음 전사"
+  - name: SAGAK_NAVER_CLIENT_ID
+    prompt: "NAVER API HUB 애플리케이션 Client ID"
+    required_for: "지도 링크 장소 확인 (D48)"
+  - name: SAGAK_NAVER_CLIENT_SECRET
+    prompt: "NAVER API HUB 애플리케이션 Client Secret"
+    required_for: "지도 링크 장소 확인 (D48)"
 ---
 
 # 사각사각 상담 기록

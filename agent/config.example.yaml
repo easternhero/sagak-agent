@@ -35,6 +35,11 @@ terminal:
     - SAGAK_NOTION_CONSULTATIONS_DB
     - SAGAK_OPENAI_STT_KEY
     - SAGAK_STT_MODEL
+    - SAGAK_NOTION_PRODUCTS_DB
+    - SAGAK_AUDIO_CLIPS
+    - SAGAK_NAVER_LOCAL_URL
+    - SAGAK_NAVER_CLIENT_ID
+    - SAGAK_NAVER_CLIENT_SECRET
 stt:
   enabled: false   # 녹음은 사각사각 transcribe 명령이 구간 시간과 함께 전사
 skills:
