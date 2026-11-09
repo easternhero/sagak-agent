@@ -9,7 +9,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
 from . import business
-from .normalize import mask_numbers, normalize_phone, parse_caption, split_name
+from .normalize import TEST_PREFIX, is_test, mask_numbers, normalize_phone, parse_caption, split_name
 
 KST = timezone(timedelta(hours=9))
 REFUND_DONE = "환불 완료"
@@ -136,6 +136,9 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
     if not name or not phone:
         missing = [label for label, v in (("성함", name), ("연락처", phone)) if not v]
         raise InputError("MISSING_CUSTOMER", "고객 " + ", ".join(missing) + " 정보가 없습니다.")
+    if is_test(name, phone) and not name.startswith(TEST_PREFIX):
+        # 테스트 번호(010-0000-)로만 접수돼도 이름에 표시를 붙여 노션 세 DB에서 보이게 한다 (D44)
+        name = "{} {}".format(TEST_PREFIX, name)
 
     company = _text(cust_in.get("company")) or caption["company"]
     # 기본은 개인. 회사·단체 정보가 있으면 기업.

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .normalize import match_staff, normalize_name
+from .normalize import TEST_PREFIX, match_staff, normalize_name
 
 OPEN_STATUSES = ("상담진행중", "추후연락", "이벤트진행예정")
 NEW_EVENT_STATUS = "상담진행중"
@@ -78,12 +78,14 @@ def plan(record: dict, store) -> dict:
             needs_check.append(label)
 
     found = store.find_customers(cust["phone"])
-    same = [c for c in found if normalize_name(c.get("name")) == normalize_name(cust["name"])]
+    same = [c for c in found if _same_name(c.get("name"), cust["name"])]
     result["warnings"] = warnings_for(found)
 
     channel = record.get("channel")
     if len(same) == 1:
         to_set, diffs = merge(same[0], cust, CUSTOMER_LABELS, "고객")
+        if cust["name"].startswith(TEST_PREFIX) and not (same[0].get("name") or "").startswith(TEST_PREFIX):
+            to_set["name"] = cust["name"]  # 표시 없이 만들어진 테스트 고객에 표시를 붙인다
         marks = list(same[0].get("marks") or [])
         if channel and channel not in marks:  # 접수 경로는 덧붙이기만 (D46)
             to_set["marks"] = marks + [channel]
@@ -166,6 +168,14 @@ def _new_event(ev: dict, co: dict) -> dict:
     fields["status"] = NEW_EVENT_STATUS
     fields["requested_on"] = co["consulted_at"][:10]
     return fields
+
+
+def _same_name(a, b) -> bool:
+    """이름 비교. 테스트 표시([테스트])는 빼고 본다 — 표시 전에 만들어진 테스트 고객도 같은 사람으로 잇는다."""
+    def key(n):
+        n = (n or "").strip()
+        return normalize_name(n[len(TEST_PREFIX):] if n.startswith(TEST_PREFIX) else n)
+    return key(a) == key(b)
 
 
 def event_title(name: str, ev: dict) -> str:

@@ -26,7 +26,7 @@ class FakeOpener:
 
 class NotionTest(unittest.TestCase):
     def test_none_values_are_not_sent(self):
-        props = to_properties({"name": "김민수", "phone": "010-0000-1111", "email": None, "company": ""}, CUSTOMER_PROPS)
+        props = to_properties({"name": "김민수", "phone": "010-1000-1111", "email": None, "company": ""}, CUSTOMER_PROPS)
         self.assertEqual(set(props), {"의뢰인", "연락처"})
 
     def test_long_text_is_chunked(self):
@@ -37,10 +37,10 @@ class NotionTest(unittest.TestCase):
     def test_parse_page(self):
         page = {"id": "p1", "url": "u", "properties": {
             "의뢰인": {"type": "title", "title": [{"plain_text": "김민수"}]},
-            "연락처": {"type": "phone_number", "phone_number": "010-0000-1111"},
+            "연락처": {"type": "phone_number", "phone_number": "010-1000-1111"},
             "고객 구분": {"type": "select", "select": None}}}
         c = from_properties(page, CUSTOMER_PROPS)
-        self.assertEqual((c["name"], c["phone"], c["customer_type"]), ("김민수", "010-0000-1111", None))
+        self.assertEqual((c["name"], c["phone"], c["customer_type"]), ("김민수", "010-1000-1111", None))
 
     def test_transcript_not_in_page_blocks(self):
         blocks = to_blocks([("근거", ["a"]), ("전사 원문", ["줄{}".format(i) for i in range(300)])])
@@ -71,11 +71,11 @@ class NotionTest(unittest.TestCase):
             {"id": "e1", "url": "https://notion.so/e1"},
         ])
         store = NotionStore("tok", "dbc", "dbe", "dbs", opener=opener)
-        self.assertEqual(store.find_customers("010-0000-1111"), [])
+        self.assertEqual(store.find_customers("010-1000-1111"), [])
         store.create_event({"title": "t", "status": "상담진행중", "budget": None}, "c9")
         (m1, url1, body1), (m2, url2, body2) = opener.calls
         self.assertEqual((m1, url1), ("POST", "https://api.notion.com/v1/databases/dbc/query"))
-        self.assertEqual(body1["filter"]["phone_number"]["equals"], "010-0000-1111")
+        self.assertEqual(body1["filter"]["phone_number"]["equals"], "010-1000-1111")
         self.assertEqual(body2["parent"], {"database_id": "dbe"})
         self.assertEqual(body2["properties"]["고객"], {"relation": [{"id": "c9"}]})
         self.assertNotIn("고객 예산", body2["properties"])

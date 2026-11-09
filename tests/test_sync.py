@@ -115,7 +115,7 @@ class SyncTest(unittest.TestCase):
     def test_same_phone_different_name_needs_person(self):
         store = MemoryStore()
         run(store, "s01")
-        out = run(store, "s02", lambda d: d.update(caption="김민지 / 010-0000-1111"))
+        out = run(store, "s02", lambda d: d.update(caption="김민지 / 010-1000-1111"))
         self.assertIsNone(out["customer"])
         self.assertIsNone(out["event"])
         self.assertIsNone(out["consultation"]["round"])
@@ -157,7 +157,7 @@ class SyncTest(unittest.TestCase):
     def test_different_theme_starts_new_event(self):
         store = MemoryStore()
         run(store, "s01")  # 프로포즈 진행 중
-        out = run(store, "s04", lambda d: d.update(caption="김민수 / 010-0000-1111"))  # 생일 문의
+        out = run(store, "s04", lambda d: d.update(caption="김민수 / 010-1000-1111"))  # 생일 문의
         self.assertEqual((out["customer"]["action"], out["event"]["action"]), ("link", "create"))
         self.assertEqual(out["consultation"]["round"], 1)
         self.assertEqual(len(store.events), 2)
@@ -167,7 +167,7 @@ def unresolved(store):
     """s01 기록 후, 같은 번호·다른 이름으로 생일 문의 → 고객 연결 필요 상태."""
     run(store, "s01")
     data = load("s04")
-    data["caption"] = "김민지 / 010-0000-1111"
+    data["caption"] = "김민지 / 010-1000-1111"
     record = build_record(data)
     p = plan(record, store)
     out = apply(record, p, store)
@@ -194,7 +194,7 @@ class ResolveTest(unittest.TestCase):
         store = MemoryStore()
         run(store, "s01")
         data = load("s02")
-        data["caption"] = "김민지 / 010-0000-1111"
+        data["caption"] = "김민지 / 010-1000-1111"
         record = build_record(data)
         p = plan(record, store)
         out = apply(record, p, store)
@@ -305,6 +305,21 @@ class SameValueTest(unittest.TestCase):
         self.assertTrue(_same("2026-12-12T19:00:00.000+09:00", "2026-12-12T19:00:00+09:00"))
         self.assertTrue(_same("2026-12-12T10:00:00.000Z", "2026-12-12T19:00:00+09:00"))
         self.assertFalse(_same("2026-12-12T18:00:00+09:00", "2026-12-12T19:00:00+09:00"))
+
+
+class TestMarkTest(unittest.TestCase):
+    def test_unmarked_test_customer_is_linked_and_renamed(self):
+        store = MemoryStore()
+        old = store.create_customer({"name": "김춘자", "phone": "010-0000-0001"})
+        data = load("s01")
+        data["customer"] = dict(data.get("customer") or {}, name="김춘자", phone="010-0000-0001")
+        record = build_record(data)
+        p = plan(record, store)
+        self.assertEqual(p["customer"]["action"], "link")
+        self.assertEqual(p["customer"]["set"].get("name"), "[테스트] 김춘자")
+        out = apply(record, p, store)
+        self.assertEqual(store.customers[old["id"]]["name"], "[테스트] 김춘자")
+        self.assertTrue(all(e["title"].startswith("[테스트]") for e in store.events.values()))
 
 
 if __name__ == "__main__":

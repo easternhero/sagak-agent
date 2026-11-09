@@ -7,20 +7,27 @@ from sagak.record import InputError, build_record
 
 class NormalizeTest(unittest.TestCase):
     def test_phone_formats(self):
-        for raw in ("01000001111", "010-0000-1111", "010 0000 1111", "010.0000.1111", "연락처: 010-0000-1111"):
-            self.assertEqual(normalize_phone(raw), "010-0000-1111")
+        for raw in ("01010001111", "010-1000-1111", "010 1000 1111", "010.1000.1111", "연락처: 010-1000-1111"):
+            self.assertEqual(normalize_phone(raw), "010-1000-1111")
         self.assertIsNone(normalize_phone("02-123-4567"))
 
     def test_caption_with_company(self):
-        c = parse_caption("이지은 / 하늘상사 / 010-0000-2222 / jieun@example.com")
-        self.assertEqual(c, {"name": "이지은", "phone": "010-0000-2222", "email": "jieun@example.com", "company": "하늘상사"})
+        c = parse_caption("이지은 / 하늘상사 / 010-1000-2222 / jieun@example.com")
+        self.assertEqual(c, {"name": "이지은", "phone": "010-1000-2222", "email": "jieun@example.com", "company": "하늘상사"})
 
     def test_caption_with_labels_and_newlines(self):
-        c = parse_caption("성함: 김민수\n연락처: 01000001111\n이메일: minsu@example.com")
-        self.assertEqual((c["name"], c["phone"], c["email"], c["company"]), ("김민수", "010-0000-1111", "minsu@example.com", None))
+        c = parse_caption("성함: 김민수\n연락처: 01010001111\n이메일: minsu@example.com")
+        self.assertEqual((c["name"], c["phone"], c["email"], c["company"]), ("김민수", "010-1000-1111", "minsu@example.com", None))
 
 
 class RecordTest(unittest.TestCase):
+    def test_test_phone_gets_test_mark(self):
+        data = load("s01")
+        data["customer"] = dict(data.get("customer") or {}, name="김춘자", phone="010-0000-0001")
+        self.assertEqual(build_record(data)["customer"]["name"], "[테스트] 김춘자")
+        data["customer"]["name"] = "[테스트] 김춘자"  # 이미 표시가 있으면 그대로
+        self.assertEqual(build_record(data)["customer"]["name"], "[테스트] 김춘자")
+
     def test_s01_new_personal(self):
         r = build_record(load("s01"))
         self.assertEqual(r["customer"]["name"], "김민수")
