@@ -11,6 +11,7 @@
                                            상품의 장소 링크를 노션 '상품'에 넣고 그 상품의 진행 중 이벤트에도 달기
   python3 -m sagak recheck-maps [--dry-run]  모든 이벤트 지도 링크를 네이버로 다시 확인 (확인 안 된 자동 링크는 지움)
   python3 -m sagak cleanup-test [--dry-run]  [테스트] 고객·이벤트·상담을 한꺼번에 휴지통으로
+  python3 -m sagak demo                      키 없이 체험: 가상 상담 6건을 봇과 같은 코드로 처리해 답장·기록을 보여 줌
   python3 -m sagak ping                      Notion 키와 DB 접근 확인
   python3 -m sagak products                  업체 설정의 브랜드·상품명·고객 안내 이름 보기
   python3 -m sagak announce [--to admin|others] [--dry-run] [--env <.env 경로>] [--stdin]
@@ -109,12 +110,16 @@ def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     cmd = argv[0] if argv else None
     if cmd not in ("check", "record", "resolve", "transcribe", "ping", "announce", "console", "products",
-                   "history", "sweep", "cleanup-test", "recheck-maps", "notify", "product-map") or (
-            cmd not in ("ping", "announce", "console", "products", "sweep", "cleanup-test", "recheck-maps", "notify")
+                   "history", "sweep", "cleanup-test", "recheck-maps", "notify", "product-map", "demo") or (
+            cmd not in ("demo", "ping", "announce", "console", "products", "sweep", "cleanup-test", "recheck-maps", "notify")
             and len(argv) < 2):
         print(__doc__)
         return 1
     try:
+        if cmd == "demo":
+            from .demo import run as demo_run
+            demo_run()
+            return 0
         if cmd == "ping":
             _print({"ok": True, "databases": NotionStore.from_env().ping()})
             return 0
