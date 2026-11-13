@@ -99,9 +99,14 @@ def _sweep(store, record: dict) -> dict:
     실패해도 기록 결과는 그대로 돌려준다."""
     from . import sweep
     from .normalize import is_test
+    import os
     cust = record["customer"]
+    if os.environ.get("SAGAK_DEMO"):  # 공개 데모: 가상 번호뿐이라 테스트 구분 없이 전부 점검
+        scope = None
+    else:
+        scope = "test" if is_test(cust.get("name"), cust.get("phone")) else "real"
     try:
-        return sweep.run(store, scope="test" if is_test(cust.get("name"), cust.get("phone")) else "real")
+        return sweep.run(store, scope=scope)
     except NotionError as e:
         return {"error": str(e), "changes": [], "warnings": []}
 

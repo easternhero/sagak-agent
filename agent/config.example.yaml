@@ -40,6 +40,8 @@ terminal:
     - SAGAK_NAVER_LOCAL_URL
     - SAGAK_NAVER_CLIENT_ID
     - SAGAK_NAVER_CLIENT_SECRET
+    - SAGAK_BUSINESS_FILE   # 업체 설정 파일 위치 (없으면 agent/business.json)
+    - SAGAK_DEMO            # 공개 데모 프로필만 1
 stt:
   enabled: false   # 녹음은 사각사각 transcribe 명령이 구간 시간과 함께 전사
 skills:

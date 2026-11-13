@@ -8,6 +8,11 @@ AX School 프로젝트 제출용 레포입니다.
 - 서비스 흐름: [docs/service-flow.md](docs/service-flow.md) · 노션 구성: [docs/notion-schema.md](docs/notion-schema.md)
 - 결정 기록(D1–D57): [docs/decisions.md](docs/decisions.md) · 봇 테스트 시나리오: [docs/bot-test-scenarios.md](docs/bot-test-scenarios.md)
 
+## 직접 써 보기
+
+- **키 없이 1분 체험:** `PYTHONPATH=src python3 -m sagak demo` — 가상 상담 6건을 봇과 같은 코드로 처리해 답장과 기록을 보여 줍니다.
+- **데모 봇과 공개 데모 노션, 내 노션·봇으로 설치하는 방법:** [docs/setup.md](docs/setup.md)
+
 ## 1. 누구를 위한 에이전트인가
 
 **대상**: 프러포즈·기념일 이벤트를 기획하고 현장에서 진행하는 소규모 이벤트 회사의 대표와 상담 직원(4명, 하루 상담 5~10건).
@@ -44,7 +49,7 @@ AX School 프로젝트 제출용 레포입니다.
 - 계좌·카드번호 자동 가림, 블랙리스트 고객 경고, 테스트 기록 표시(성함 `[테스트]` 또는 연락처 `010-0000-`)와 일괄 정리
 - 네이버 지도 링크: 직원 링크는 열리는지 확인, 자동 링크는 네이버 검색 API(API HUB)로 장소가 확인될 때만, 장소가 고정인 상품은 노션 '상품'의 링크 사용
 - 운영 도구: 변경 안내·요청 보내기 화면(개발자 PC 로컬), 직원용 명령 메뉴 제한(/new · /stop · /help)
-- 테스트: 단위 테스트 148개(표준 라이브러리만), 텔레그램 봇 시나리오 T1–T9
+- 테스트: 단위 테스트 149개(표준 라이브러리만), 키 없이 체험하는 `sagak demo`, 텔레그램 봇 시나리오 T1–T9
 
 ### 아직 안 되는 것
 
@@ -104,6 +109,7 @@ sagak/
 
 ```bash
 python3 -m unittest discover -s tests -t .           # 단위 테스트 (표준 라이브러리만 사용)
+PYTHONPATH=src python3 -m sagak demo                 # 키 없이 체험 (가상 상담 6건)
 PYTHONPATH=src python3 -m sagak check tests/fixtures/extractions/s01.json   # 검증만
 PYTHONPATH=src python3 -m sagak ping                 # Notion 접근 확인 (sagak profile 환경변수 필요)
 PYTHONPATH=src python3 -m sagak announce --dry-run   # 봇 변경 안내 미리 보기 (--dry-run 빼면 텔레그램 발송 + [/new] 버튼)

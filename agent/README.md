@@ -19,3 +19,5 @@ Hermes profile `sagak`에 들어갈 파일입니다. Hermes profile distribution
 | `SAGAK_NOTION_PRODUCTS_DB` | 노션 「상품」 DB — 상품별 네이버 지도 링크·장소 (D54) | 업체 설정 파일의 venue·map_url만 씀 |
 | `SAGAK_NAVER_CLIENT_ID` · `SAGAK_NAVER_CLIENT_SECRET` | 네이버 클라우드 NAVER API HUB(검색) 인증 정보 — 자동 지도 링크 확인 (D48). 예전 개발자센터 키면 `SAGAK_NAVER_LOCAL_URL`도 지정 | 자동 지도 링크를 달지 않음(직원 링크는 확인 후 달림) |
 | `SAGAK_AUDIO_CLIPS` | `1`이면 근거별 녹음 클립 (D43) | 클립 없음 |
+| `SAGAK_BUSINESS_FILE` | 업체 설정 파일 경로. 공개 데모는 `agent/demo/business.json` | `agent/business.json` |
+| `SAGAK_DEMO` | `1`이면 공개 데모 모드: 가상 번호(010-0000-)에도 [테스트] 표시를 붙이지 않고, 점검은 전체 이벤트 | 일반 모드 |

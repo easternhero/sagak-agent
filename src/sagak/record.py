@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import os
 import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
@@ -136,7 +137,7 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
     if not name or not phone:
         missing = [label for label, v in (("성함", name), ("연락처", phone)) if not v]
         raise InputError("MISSING_CUSTOMER", "고객 " + ", ".join(missing) + " 정보가 없습니다.")
-    if is_test(name, phone) and not name.startswith(TEST_PREFIX):
+    if is_test(name, phone) and not name.startswith(TEST_PREFIX) and not os.environ.get("SAGAK_DEMO"):
         # 테스트 번호(010-0000-)로만 접수돼도 이름에 표시를 붙여 노션 세 DB에서 보이게 한다 (D44)
         name = "{} {}".format(TEST_PREFIX, name)
 
