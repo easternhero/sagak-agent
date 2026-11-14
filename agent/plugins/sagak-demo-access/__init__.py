@@ -66,13 +66,22 @@ def _setting(name: str) -> str:
     return _env_file().get(name) or os.environ.get(name, "")
 
 
+def _yaml_load(text: str):
+    """Hermes는 PyYAML이 아니라 자체 hermes_yaml(ruamel)을 쓴다. 둘 다 시도."""
+    try:
+        from hermes_yaml import safe_load
+    except ImportError:
+        from yaml import safe_load
+    return safe_load(text)
+
+
 def admins() -> list:
     try:
-        import yaml
-        cfg = yaml.safe_load((_home() / "config.yaml").read_text(encoding="utf-8")) or {}
+        cfg = _yaml_load((_home() / "config.yaml").read_text(encoding="utf-8")) or {}
         ids = (((cfg.get("platforms") or {}).get(PLATFORM) or {}).get("extra") or {}).get("allow_admin_from") or []
         return [str(i) for i in ids]
-    except Exception:
+    except Exception as e:
+        logger.warning("sagak-demo-access: 관리자 목록을 읽지 못함 (%s: %s)", type(e).__name__, e)
         return []
 
 
@@ -230,8 +239,8 @@ def _is_admin(kwargs) -> bool:
     uid = str(getattr(source, "user_id", "") or "")
     ids = admins()
     ok = (uid in ids) if (uid and ids) else True
-    if not ok:
-        logger.warning("sagak-demo-access: 관리자 아님 uid=%s admins=%s home=%s", uid, ids, _home())
+    (logger.info if ok else logger.warning)("sagak-demo-access: 관리자 확인 ok=%s uid=%s admins=%s home=%s",
+                                            ok, uid or "-", ids, _home())
     return ok
 
 
