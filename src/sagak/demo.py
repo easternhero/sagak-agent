@@ -78,6 +78,7 @@ def _board(store) -> list:
 
 def run(echo=print) -> dict:
     os.environ.setdefault("SAGAK_BUSINESS_FILE", os.path.join(FIXTURES, "business.json"))
+    os.environ.pop("SAGAK_DEMO", None)  # 키 없이 체험은 공개 데모 봇 규칙(가상 번호·리뷰어 표시)과 무관
     from .memstore import MemoryStore
     from .record import InputError, build_record
     from . import sweep

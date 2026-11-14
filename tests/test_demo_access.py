@@ -58,6 +58,8 @@ class DemoAccessTest(unittest.TestCase):
         self.assertIn("승인했어요", access.decide("1", True, store=store, sender=self.send))
         self.assertTrue(store.is_approved("telegram", "111"))
         self.assertIn("승인됐어요", self.sent[-1][1])
+        self.assertIn("서도윤 / 010-0000-8001", self.sent[-1][1])  # 신청 #1 전용 가상 고객
+        self.assertIn("리뷰어 #1", self.sent[-1][1])
         self.assertIn("거절했어요", access.decide("", False, store=store, sender=self.send))  # 남은 1건
         self.assertEqual(self.sent[-1][0], "222")
         self.assertIn("이미", access.decide("2", True, store=store, sender=self.send))

@@ -350,6 +350,18 @@ class NotionStore:
                 found["consultations"][p["id"]] = title(p)
         return found
 
+    def reviewer_pages(self) -> dict:
+        """공개 데모 정리용 (D60): 상담자가 '리뷰어 #…'인 상담, 그 상담만 있는 이벤트, 그런 이벤트만 있는 고객.
+        처음 넣어 둔 기본 예시(직원이 상담자인 기록)는 남는다."""
+        from .demo_mode import is_reviewer_label
+
+        def page(pid):
+            return self._request("GET", "/pages/{}".format(pid))
+
+        return reviewer_cleanup_plan(
+            self._query_all("consultations", {"property": "상담자", "select": {"is_not_empty": True}}),
+            page, is_reviewer_label)
+
     def trash(self, page_id: str) -> None:
         self._request("PATCH", "/pages/{}".format(page_id), {"archived": True})
 
@@ -426,3 +438,33 @@ class NotionStore:
         except urllib.error.URLError as e:
             raise NotionError("Notion 연결 실패: {}".format(e.reason)) from None
         return up["id"]
+
+
+def reviewer_cleanup_plan(consultations: list, get_page, is_reviewer) -> dict:
+    """노션 페이지(JSON)로 지울 목록 계산. get_page(id) → 페이지. 테스트에서 가짜 페이지로 쓴다."""
+    def rel(p, name):
+        return [r["id"] for r in (p.get("properties", {}).get(name, {}).get("relation") or [])]
+
+    def title(p):
+        return from_property(next(v for v in p["properties"].values() if v.get("type") == "title"))
+
+    found = {"customers": {}, "events": {}, "consultations": {}}
+    for p in consultations:
+        if is_reviewer(((p["properties"].get("상담자") or {}).get("select") or {}).get("name")):
+            found["consultations"][p["id"]] = title(p)
+    gone = set(found["consultations"])
+    events = {}
+    for cid in gone:
+        for eid in rel(get_page(cid), "이벤트"):
+            events.setdefault(eid, get_page(eid))
+    for eid, ev in events.items():
+        if set(rel(ev, "상담 이력")) <= gone:  # 리뷰어 상담만 있는 이벤트
+            found["events"][eid] = title(ev)
+    customers = {}
+    for eid in found["events"]:
+        for cust in rel(events[eid], "고객"):
+            customers.setdefault(cust, get_page(cust))
+    for cust, c in customers.items():
+        if set(rel(c, "이벤트")) <= set(found["events"]):  # 지울 이벤트만 있는 고객
+            found["customers"][cust] = title(c)
+    return found

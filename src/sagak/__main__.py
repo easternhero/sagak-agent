@@ -11,6 +11,7 @@
                                            상품의 장소 링크를 노션 '상품'에 넣고 그 상품의 진행 중 이벤트에도 달기
   python3 -m sagak recheck-maps [--dry-run]  모든 이벤트 지도 링크를 네이버로 다시 확인 (확인 안 된 자동 링크는 지움)
   python3 -m sagak cleanup-test [--dry-run]  [테스트] 고객·이벤트·상담을 한꺼번에 휴지통으로
+  python3 -m sagak demo-reset [--dry-run]    공개 데모: 리뷰어(상담자 '리뷰어 #…')가 남긴 상담과 그것만으로 생긴 이벤트·고객을 휴지통으로
   python3 -m sagak demo                      키 없이 체험: 가상 상담 6건을 봇과 같은 코드로 처리해 답장·기록을 보여 줌
   python3 -m sagak setup-notion --env <.env> [--dry-run]
                                            그 .env의 노션 키로 고객·이벤트(의뢰)·상담 이력·상품 DB를 찾아 ID 채우기
@@ -117,8 +118,8 @@ def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     cmd = argv[0] if argv else None
     if cmd not in ("check", "record", "resolve", "transcribe", "ping", "announce", "console", "products",
-                   "history", "sweep", "cleanup-test", "recheck-maps", "notify", "product-map", "demo", "setup-notion") or (
-            cmd not in ("demo", "setup-notion", "ping", "announce", "console", "products", "sweep", "cleanup-test", "recheck-maps", "notify")
+                   "history", "sweep", "cleanup-test", "recheck-maps", "notify", "product-map", "demo", "setup-notion", "demo-reset") or (
+            cmd not in ("demo", "setup-notion", "demo-reset", "ping", "announce", "console", "products", "sweep", "cleanup-test", "recheck-maps", "notify")
             and len(argv) < 2):
         print(__doc__)
         return 1
@@ -191,6 +192,18 @@ def main(argv=None) -> int:
             if not out["ok"]:
                 raise InputError(out["error"], out["message"])
             _print(out)
+            return 0
+        if cmd == "demo-reset":
+            store = NotionStore.from_env()
+            found = store.reviewer_pages()
+            dry = "--dry-run" in argv
+            if not dry:
+                for kind in ("consultations", "events", "customers"):
+                    for pid in found[kind]:
+                        store.trash(pid)
+                        if kind == "consultations":
+                            pending.delete(pid)
+            _print({"ok": True, "dry_run": dry, **{k: list(v.values()) for k, v in found.items()}})
             return 0
         if cmd == "cleanup-test":
             store = NotionStore.from_env()

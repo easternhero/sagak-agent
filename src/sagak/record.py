@@ -10,7 +10,8 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
 from . import business
-from .normalize import TEST_PREFIX, is_test, mask_numbers, normalize_phone, parse_caption, split_name
+from . import demo_mode
+from .normalize import TEST_PHONE_PREFIX, TEST_PREFIX, is_test, mask_numbers, normalize_phone, parse_caption, split_name
 
 KST = timezone(timedelta(hours=9))
 REFUND_DONE = "환불 완료"
@@ -137,6 +138,10 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
     if not name or not phone:
         missing = [label for label, v in (("성함", name), ("연락처", phone)) if not v]
         raise InputError("MISSING_CUSTOMER", "고객 " + ", ".join(missing) + " 정보가 없습니다.")
+    if demo_mode.is_demo() and not phone.startswith(TEST_PHONE_PREFIX):
+        # 공개 데모: 기록이 공개 노션에 올라가므로 실제 번호는 받지 않는다 (D60)
+        raise InputError("DEMO_FAKE_PHONE", "데모에서는 010-0000-으로 시작하는 가상 번호만 쓸 수 있어요. "
+                         "기록이 공개 노션에 올라가니, 실제 연락처 대신 가상 번호로 다시 보내 주세요.")
     if is_test(name, phone) and not name.startswith(TEST_PREFIX) and not os.environ.get("SAGAK_DEMO"):
         # 테스트 번호(010-0000-)로만 접수돼도 이름에 표시를 붙여 노션 세 DB에서 보이게 한다 (D44)
         name = "{} {}".format(TEST_PREFIX, name)
@@ -237,7 +242,7 @@ def build_record(data: dict, now: Optional[datetime] = None) -> dict:
         "follow_up": _text(co.get("follow_up")),
         "next_contact": _text(co.get("next_contact")) or "미정",
         "questions": questions,
-        "consultant": _text(data.get("consultant")),
+        "consultant": demo_mode.reviewer_label() or _text(data.get("consultant")),  # 데모: 리뷰어 #번호 (D60)
         "consulted_at": consulted_at,
         "input_type": _choice(data.get("input_type"), INPUT_TYPES) or "전사 텍스트",
         "needs_check": needs_check,

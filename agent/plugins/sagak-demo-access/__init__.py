@@ -144,13 +144,32 @@ def _who(r: dict) -> str:
 MSG_RECEIVED = ("안녕하세요! 사각사각 데모 봇입니다 🙂\n사용 신청을 받았어요 (신청 #{no}).\n"
                 "개발자가 승인하면 여기로 바로 알려 드릴게요. 보통 몇 분~몇 시간 걸려요.")
 MSG_WAITING = "아직 승인 대기 중이에요 (신청 #{no}). 승인되면 바로 알려 드릴게요."
-MSG_APPROVED = ("승인됐어요! 🎉 이제 사각사각 데모 봇을 쓸 수 있어요.\n\n"
-                "1) /new 를 눌러 새 대화를 시작하고\n"
-                "2) 아래 예시를 그대로 보내 보세요 (가상 고객이에요)\n\n"
-                "한지우 / 010-0000-7001\n갤러리 프로포즈 문의. 12월 5일 토요일 저녁 7시, 장미 50송이 추가, "
-                "촬영도 원함. 서프라이즈라 여자친구에게 연락 금지\n\n"
-                "녹음 파일이나 대화 내보내기(txt)를 '이름 / 010-0000-xxxx' 캡션과 함께 보내도 돼요. "
-                "연락처는 010-0000-으로 시작하는 가상 번호를 써 주세요.")
+# 리뷰어마다 다른 가상 고객으로 예시를 보내 기록이 섞이지 않게 (D60). 번호는 010-0000-8xxx (데모 자료 7xxx와 겹치지 않음)
+FAKE_NAMES = ["서도윤", "김하린", "이준서", "박지아", "최시우", "정예린", "강도현", "윤서윤", "장하준", "임채원",
+              "오지호", "한유나", "신민재", "권소율", "황태윤", "송다인", "전우진", "고은서", "문시온", "배하람"]
+
+
+def example_for(no: str):
+    n = int(no)
+    name = FAKE_NAMES[(n - 1) % len(FAKE_NAMES)]
+    phone = "010-0000-8{:03d}".format(n % 1000)
+    return name, phone
+
+
+def approved_message(no: str) -> str:
+    name, phone = example_for(no)
+    return ("승인됐어요! 🎉 이제 사각사각 데모 봇을 쓸 수 있어요.\n\n"
+            "1) /new 를 눌러 새 대화를 시작하고\n"
+            "2) 아래 예시를 그대로 보내 보세요. 신청 #{no} 전용 가상 고객이에요.\n\n"
+            "{name} / {phone}\n갤러리 프로포즈 문의. 12월 5일 토요일 저녁 7시, 장미 50송이 추가, 촬영도 원함. "
+            "서프라이즈라 여자친구에게 연락 금지\n\n"
+            "3) 이어서 이것도 보내 보세요. 같은 고객의 2차 상담으로 이어지고, 바뀐 내용은 덮어쓰지 않고 표시해요.\n\n"
+            "{name} / {phone}\n2차 통화 메모: 장소를 레스토랑으로 바꿀 수 있는지 물어봄. 날짜는 아직 고민 중이라고 함.\n\n"
+            "직접 쓴 상담이나 녹음 파일(m4a·mp3), 카카오톡 대화 내보내기(txt)도 보낼 수 있어요. "
+            "기록은 공개 노션에 올라가니 실제 이름·연락처는 쓰지 말고, 연락처는 010-0000-으로 시작하는 가상 번호를 써 주세요. "
+            "노션에서 상담자가 '리뷰어 #{no}'인 기록이 직접 보낸 거예요.").format(no=no, name=name, phone=phone)
+
+
 MSG_DENIED = "이번 데모 신청은 승인되지 않았어요. 데모 영상과 노션에서 결과를 볼 수 있어요."
 MSG_ADMIN_NEW = ("🔔 사각사각 데모 사용 신청 #{no}\n{who}\n\n"
                  "승인: /demo_approve {no}\n거절: /demo_deny {no}\n목록: /demo_requests")
@@ -258,7 +277,7 @@ def decide(args: str, approve: bool, store=None, sender=send, admin_ok: bool = T
             if not grant(store or _store(), r["user_id"], r.get("name", "")):
                 return "신청 #{} 승인 기록에 실패했어요. 터미널에서 hermes pairing list로 확인해 주세요.".format(no)
             r["status"] = "approved"
-            msg = MSG_APPROVED + _links()
+            msg = approved_message(no) + _links()
         else:
             r["status"] = "denied"
             msg = MSG_DENIED + _links()
