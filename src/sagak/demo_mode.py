@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Optional
+import re
+from typing import Any, Optional
+from urllib.parse import urlparse
 
 REVIEWER_PREFIX = "리뷰어 #"
 
@@ -25,12 +27,16 @@ def _state_path() -> str:
 
 
 def reviewer_label(user_id: Optional[str] = None) -> Optional[str]:
-    """보낸 사람이 승인된 데모 리뷰어면 '리뷰어 #3', 아니면(관리자·직원) None."""
+    """데모 봇에서 보낸 사람의 상담자 표시: 승인된 리뷰어 → '리뷰어 #3', 관리자 → SAGAK_DEMO_ADMIN_NAME(예: 판교춘자).
+    데모가 아니거나 알 수 없으면 None(대화에서 뽑은 상담자를 씀)."""
     if not is_demo():
         return None
     uid = str(user_id or os.environ.get("HERMES_SESSION_ACTOR_ID") or os.environ.get("HERMES_SESSION_USER_ID") or "")
     if not uid:
         return None
+    admins = [a.strip() for a in os.environ.get("SAGAK_DEMO_ADMIN_IDS", "").split(",") if a.strip()]
+    if uid in admins and os.environ.get("SAGAK_DEMO_ADMIN_NAME"):
+        return os.environ["SAGAK_DEMO_ADMIN_NAME"]
     try:
         with open(_state_path(), encoding="utf-8") as f:
             state = json.load(f)
@@ -44,3 +50,26 @@ def reviewer_label(user_id: Optional[str] = None) -> Optional[str]:
 
 def is_reviewer_label(name: Optional[str]) -> bool:
     return bool(name) and name.startswith(REVIEWER_PREFIX)
+
+
+NOTION_URL_RE = re.compile(r"https://(?:www\.)?notion\.so/(?:[^\s\"/]+/)?(?:[^\s\"/?]*-)?([0-9a-f]{32})(?:\?[^\s\"]*)?")
+
+
+def public_links(obj: Any) -> Any:
+    """데모 봇 답장 속 노션 링크(API가 주는 워크스페이스 편집 링크)를 게시 주소(notion.site)로 바꾼다.
+    워크스페이스 링크는 리뷰어가 열 수 없다. 게시 주소의 호스트는 SAGAK_DEMO_NOTION_URL에서 가져온다."""
+    if not is_demo():
+        return obj
+    host = urlparse(os.environ.get("SAGAK_DEMO_NOTION_URL", "")).netloc
+    if not host.endswith("notion.site"):
+        return obj
+
+    def walk(v):
+        if isinstance(v, str):
+            return NOTION_URL_RE.sub(lambda m: "https://{}/{}".format(host, m.group(1)), v)
+        if isinstance(v, list):
+            return [walk(x) for x in v]
+        if isinstance(v, dict):
+            return {k: walk(x) for k, x in v.items()}
+        return v
+    return walk(obj)

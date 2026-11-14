@@ -48,6 +48,21 @@ class DemoModeTest(unittest.TestCase):
         os.environ["HERMES_SESSION_USER_ID"] = "333"
         self.assertIsNone(demo_mode.reviewer_label())  # 데모가 아니면 표시 안 함
 
+    def test_admin_named_and_links_public(self):
+        os.environ.update(SAGAK_DEMO_ADMIN_IDS="999", SAGAK_DEMO_ADMIN_NAME="판교춘자", HERMES_SESSION_USER_ID="999",
+                          SAGAK_DEMO_NOTION_URL="https://demo-guide.notion.site/0976d6e4c49f82ca8fab813dfe18cf6d")
+        try:
+            self.assertEqual(demo_mode.reviewer_label(), "판교춘자")
+            out = demo_mode.public_links({"url": "https://www.notion.so/11-%EA%B9%80-41591ad5d4258157830cffc5518f165c",
+                                          "list": ["https://www.notion.so/team/41591ad5d425818a9e32c6ccc867ed2f?pvs=4"],
+                                          "map": "https://naver.me/abc"})
+            self.assertEqual(out["url"], "https://demo-guide.notion.site/41591ad5d4258157830cffc5518f165c")
+            self.assertEqual(out["list"][0], "https://demo-guide.notion.site/41591ad5d425818a9e32c6ccc867ed2f")
+            self.assertEqual(out["map"], "https://naver.me/abc")
+        finally:
+            for k in ("SAGAK_DEMO_ADMIN_IDS", "SAGAK_DEMO_ADMIN_NAME", "SAGAK_DEMO_NOTION_URL"):
+                os.environ.pop(k, None)
+
     def test_cleanup_keeps_seed_records(self):
         pages = {
             # 리뷰어만 만든 고객 c1 → 이벤트 e1 → 상담 s1

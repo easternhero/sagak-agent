@@ -48,7 +48,8 @@ def _load(arg: str) -> dict:
 
 
 def _print(obj) -> None:
-    print(json.dumps(obj, ensure_ascii=False, indent=2))
+    from .demo_mode import public_links
+    print(json.dumps(public_links(obj), ensure_ascii=False, indent=2))  # 공개 데모: 노션 링크를 게시 주소로
 
 
 def page_id(text: str) -> str:

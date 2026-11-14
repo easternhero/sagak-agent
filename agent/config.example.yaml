@@ -42,6 +42,9 @@ terminal:
     - SAGAK_NAVER_CLIENT_SECRET
     - SAGAK_BUSINESS_FILE   # 업체 설정 파일 위치 (없으면 agent/business.json)
     - SAGAK_DEMO            # 공개 데모 프로필만 1
+    - SAGAK_DEMO_NOTION_URL # 공개 데모: 게시 주소 (봇 답장 링크를 이 주소로)
+    - SAGAK_DEMO_ADMIN_IDS  # 공개 데모: 관리자 텔레그램 ID (쉼표)
+    - SAGAK_DEMO_ADMIN_NAME # 공개 데모: 관리자 상담자 표시 이름
 stt:
   enabled: false   # 녹음은 사각사각 transcribe 명령이 구간 시간과 함께 전사
 skills:

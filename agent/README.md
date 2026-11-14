@@ -21,3 +21,5 @@ Hermes profile `sagak`에 들어갈 파일입니다. Hermes profile distribution
 | `SAGAK_AUDIO_CLIPS` | `1`이면 근거별 녹음 클립 (D43) | 클립 없음 |
 | `SAGAK_BUSINESS_FILE` | 업체 설정 파일 경로. 공개 데모는 `agent/demo/business.json` | `agent/business.json` |
 | `SAGAK_DEMO` | `1`이면 공개 데모 모드: 가상 번호(010-0000-)에도 [테스트] 표시를 붙이지 않고, 점검은 전체 이벤트 | 일반 모드 |
+| `SAGAK_DEMO_NOTION_URL` · `SAGAK_DEMO_GUIDE_URL` | 공개 데모: 게시된 데모 홈·가이드 주소. 봇 답장 속 노션 링크를 게시 주소로 바꿈 | 워크스페이스 링크 그대로 |
+| `SAGAK_DEMO_ADMIN_IDS` · `SAGAK_DEMO_ADMIN_NAME` | 공개 데모: 관리자가 보낸 상담의 상담자 이름 | 대화에서 뽑은 상담자 |

@@ -29,6 +29,8 @@ EX_NEW = ("한지우 / 010-0000-7001\n갤러리 프로포즈 문의. 12월 5일 
           "서프라이즈라 여자친구에게 연락 금지")
 EX_FOLLOW = "한지우 / 010-0000-7001\n2차 통화 메모: 장소를 레스토랑으로 바꿀 수 있는지 물어봄. 날짜는 아직 고민 중이라고 함."
 EX_OFF = "오늘 서울 날씨 어때?"
+EX_SAME = "(예시 이름에서 한 글자 바꾼 이름) / (예시와 같은 010-0000- 번호)\n예약 날짜 다시 확인하고 싶다고 전화 옴"
+EX_REAL = "홍길동 / 010-1234-5678\n호텔 프로포즈 문의"
 
 
 def t(text, link=None, bold=False, code=False):
@@ -48,8 +50,11 @@ def h2(text):
     return {"type": "heading_2", "heading_2": {"rich_text": [t(text)]}}
 
 
-def num(*rich):
-    return {"type": "numbered_list_item", "numbered_list_item": {"rich_text": list(rich)}}
+def num(*rich, children=None):
+    item = {"type": "numbered_list_item", "numbered_list_item": {"rich_text": list(rich)}}
+    if children:
+        item["numbered_list_item"]["children"] = children  # 코드 블록을 안에 넣어야 번호가 이어진다
+    return item
 
 
 def bullet(*rich):
@@ -114,23 +119,29 @@ def blocks(home_url, video, chat_id, audio_id):
         para(t("개발자라면 키 없이 터미널에서도 돌려 볼 수 있어요. 가상 상담 6건을 봇과 같은 코드로 처리해 답장과 기록을 보여 줘요.")),
         code("git clone {}.git\ncd sagak-agent && PYTHONPATH=src python3 -m sagak demo".format(REPO), "shell"),
         divider(),
-        h2("2. 데모 봇 직접 써 보기"),
-        num(t("텔레그램에서 "), t("@sagak_demo_bot", link=BOT, bold=True), t("을 열고 [시작]을 누른 뒤 아무 말이나 보내 주세요.")),
-        num(t("봇이 "), t("“사용 신청을 받았어요 (신청 #번호)”", bold=True), t("라고 답해요. 개발자에게 신청이 전달돼요.")),
-        num(t("승인되면 봇이 "), t("“승인됐어요!”", bold=True), t("라고 알려 줘요. "), t("/new", code=True),
-            t("를 누르고 아래 예시를 복사해 보내 보세요.")),
-        num(t("결과는 데모 홈에 바로 쌓여요. 봇 답장에 노션 링크도 있어요.")),
-        callout("📝", "gray_background", t("새 상담 기록", bold=True),
-                t(" — 고객 · 이벤트 · 1차 상담이 생기고, 상품·일시·특이사항이 정리돼요")),
-        code(EX_NEW),
-        callout("🔁", "gray_background", t("빠진 정보가 있는 2차 메모", bold=True),
-                t(" — 같은 고객의 2차 상담으로 이어지고, 바뀐 내용은 덮어쓰지 않고 표시해요")),
-        code(EX_FOLLOW),
-        callout("🙅", "gray_background", t("업무와 상관없는 요청", bold=True), t(" — 한 문장으로 거절하고 할 수 있는 일을 안내해요")),
-        code(EX_OFF),
+        h2("2. 데모 봇으로 테스트하기"),
+        para(t("아래 순서대로 보내 보면 사각사각이 하는 일을 처음부터 끝까지 볼 수 있어요. 메시지마다 "),
+             t("/new", code=True), t("를 먼저 보내면 깔끔해요.")),
+        num(t("신청: ", bold=True), t("텔레그램에서 "), t("@sagak_demo_bot", link=BOT, bold=True),
+            t("을 열고 아무 말이나 보내요. “사용 신청을 받았어요 (신청 #번호)” → 승인되면 "),
+            t("내 전용 가상 고객 예시", bold=True), t("가 함께 와요.")),
+        num(t("새 상담: ", bold=True), t("승인 안내의 첫 번째 예시를 보내요. 고객 · 이벤트 · 1차 상담이 생기고 상품·일시·특이사항이 정리돼요. "
+              "노션에서 상담자가 "), t("리뷰어 #번호", bold=True), t("인 기록이 내가 보낸 거예요.")),
+        num(t("2차 메모: ", bold=True), t("두 번째 예시를 보내요. 같은 고객의 2차 상담으로 이어지고, 바뀐 장소는 "),
+            t("덮어쓰지 않고", bold=True), t(" ‘기존 정보와 다름’으로 표시돼요.")),
+        num(t("같은 번호, 다른 이름: ", bold=True), t("예시의 이름만 한 글자 바꿔 보내요. 봇이 추측하지 않고 "),
+            t("“같은 고객인가요?”", bold=True), t("라고 물어요. 답하면 그때 연결해요."), children=[code(EX_SAME)]),
+        num(t("실제 같은 번호: ", bold=True), t("공개 노션에 올라가지 않도록 가상 번호(010-0000-)가 아니면 기록하지 않고 다시 요청해요."),
+            children=[code(EX_REAL)]),
+        num(t("업무와 상관없는 요청: ", bold=True), t("한 문장으로 거절하고 할 수 있는 일을 안내해요."), children=[code(EX_OFF)]),
+        num(t("카카오톡 대화 파일: ", bold=True), t("아래 첨부한 대화 내보내기 파일을 내려받아 그대로 보내요(캡션 없이).")),
+        num(t("통화 녹음: ", bold=True), t("아래 첨부한 녹음을 캡션 "), t("강민준 / 010-0000-7003", code=True),
+            t("과 함께 보내요. 화자·시각이 붙은 전사, 빠진 정보 질문, 근거 문장마다 녹음 클립이 생겨요.")),
+        num(t("결과 보기: ", bold=True), t("데모 홈", link=home_url, bold=True),
+            t(" → 상담 이력에서 상담자가 ‘리뷰어 #번호’인 기록을 열어 보세요. 봇 답장의 노션 링크로 바로 가도 돼요.")),
     ]
     if chat_id or audio_id:
-        out.append(para(t("실제 상담처럼 파일로도 보내 보세요. 아래 파일을 내려받아 봇에 그대로 보내면 돼요.", bold=True)))
+        out.append(para(t("실제 상담처럼 파일로도 보내 보세요 (7·8번). 아래 파일을 내려받아 봇에 그대로 보내면 돼요.", bold=True)))
     if chat_id:
         out.append(file_block(chat_id, CAPTION_CHAT))
     if audio_id:
@@ -146,6 +157,8 @@ def blocks(home_url, video, chat_id, audio_id):
         para(t("Hermes와 사각사각이 들어 있는 컨테이너 이미지로, 노션 키와 봇 토큰만 넣으면 돌아가게 만드는 중이에요. "
                "지금은 Hermes를 직접 설치해 연결하는 방법을 문서로 안내해요.")),
         bullet(t("설치 방법 (docs/setup.md)", link=REPO + "/blob/main/docs/setup.md")),
+        divider(),
+        para(t("만든 사람: 판교춘자 (AX 스쿨) · 모든 업체·고객·연락처는 가상 데이터예요")),
     ]
     return out
 
@@ -189,6 +202,25 @@ def refresh_files(store, target):
     print("첨부 파일과 대본을 바꿨어요 (블록 {}개).".format(len(new)))
 
 
+def update_guide(store, target, a, home):
+    """맨 위 소개 카드와 하위 페이지(데모 홈)는 두고 나머지를 지운 뒤, 새 내용을 소개 카드 바로 아래에 차례로 넣는다."""
+    kids = store._request("GET", "/blocks/{}/children?page_size=100".format(target)).get("results", [])
+    first = next((b for b in kids if b.get("type") not in ("child_page", "child_database")), None)
+    if first is None:
+        sys.exit("가이드에 소개 카드가 없어요. --into로 처음부터 채워 주세요.")
+    for b in kids:
+        if b.get("type") not in ("child_page", "child_database") and b["id"] != first["id"]:
+            store._request("DELETE", "/blocks/{}".format(b["id"]))
+    chat_id = _upload(store, "demo/kakao-chat.txt", "text/plain")
+    audio_id = _upload(store, "demo/call-recording.m4a", "audio/mp4")
+    body = blocks(a.public or ("https://app.notion.com/p/" + home), a.video, chat_id, audio_id)[1:]  # 소개 카드는 그대로
+    after = first["id"]
+    for i in range(0, len(body), 95):
+        res = store._request("PATCH", "/blocks/{}/children".format(target), {"children": body[i:i + 95], "after": after})
+        after = (res.get("results") or [{}])[-1].get("id") or after
+    print("가이드를 새로 썼어요 (블록 {}개, 데모 홈 하위 페이지는 그대로).".format(len(body) + 1))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--env", required=True)
@@ -196,6 +228,8 @@ def main():
     ap.add_argument("--video")
     ap.add_argument("--public", help="게시된 데모 홈 주소 (notion.site). 가이드의 '데모 홈으로' 링크에 씀")
     ap.add_argument("--into", help="내용을 채울 빈 가이드 페이지 (링크 또는 ID)")
+    ap.add_argument("--update", action="store_true",
+                    help="--into 가이드 내용을 새로 쓰기 (하위 페이지인 데모 홈은 그대로 둠)")
     ap.add_argument("--refresh-files", action="store_true",
                     help="--into 가이드의 첨부 파일(대화 txt·통화 녹음)만 새로 올려 바꾸기")
     a = ap.parse_args()
@@ -204,6 +238,9 @@ def main():
     home = page_id(a.home)
     home_url = a.public or ("https://app.notion.com/p/" + home)
 
+    if a.into and a.update:
+        update_guide(store, page_id(a.into), a, home)
+        return
     if a.into and a.refresh_files:
         refresh_files(store, page_id(a.into))
         return
