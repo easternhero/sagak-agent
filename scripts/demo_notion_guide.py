@@ -117,9 +117,9 @@ def blocks(home_url, video, chat_id, audio_id):
     if chat_id or audio_id:
         out.append(para(t("실제 상담처럼 파일로도 보내 보세요. 아래 파일을 내려받아 봇에 그대로 보내면 돼요.", bold=True)))
     if chat_id:
-        out.append(file_block(chat_id, "카카오톡 대화 내보내기 (윤서아, 레스토랑 프로포즈) — 캡션 없이 보내도 돼요"))
+        out.append(file_block(chat_id, CAPTION_CHAT))
     if audio_id:
-        out.append(file_block(audio_id, "상담 통화 녹음 (강민준, 정원 프로포즈) — 캡션: 강민준 / 010-0000-7003"))
+        out.append(file_block(audio_id, CAPTION_CALL))
     out += [
         callout("💡", "yellow_background",
                 t("연락처는 꼭 "), t("010-0000-", bold=True),
@@ -134,6 +134,42 @@ def blocks(home_url, video, chat_id, audio_id):
     return out
 
 
+CAPTION_CHAT = "카카오톡 대화 내보내기 (윤서아, 레스토랑 프로포즈) — 캡션 없이 보내도 돼요"
+CAPTION_CALL = "상담 통화 녹음 (강민준, 정원 프로포즈) — 캡션: 강민준 / 010-0000-7003"
+FILES_INTRO = "실제 상담처럼 파일로도 보내 보세요"
+
+
+def _upload(store, path, ctype):
+    p = os.path.join(ROOT, path)
+    if not os.path.exists(p):
+        print("건너뜀 (파일 없음):", path)
+        return None
+    with open(p, "rb") as f:
+        return store.upload_file(os.path.basename(p), f.read(), ctype)
+
+
+def refresh_files(store, target):
+    """가이드의 파일 블록을 지우고 새 파일을 같은 자리(안내 문장 바로 아래)에 다시 올린다."""
+    kids = store._request("GET", "/blocks/{}/children?page_size=100".format(target)).get("results", [])
+    intro = next((b for b in kids if b.get("type") == "paragraph" and "".join(
+        r.get("plain_text", "") for r in b["paragraph"].get("rich_text", [])).startswith(FILES_INTRO)), None)
+    if intro is None:
+        sys.exit("가이드에서 '{}' 문장을 찾지 못했어요.".format(FILES_INTRO))
+    for b in kids:
+        if b.get("type") == "file":
+            store._request("DELETE", "/blocks/{}".format(b["id"]))
+    new = []
+    chat = _upload(store, "demo/kakao-chat.txt", "text/plain")
+    if chat:
+        new.append(file_block(chat, CAPTION_CHAT))
+    call = _upload(store, "demo/call-recording.m4a", "audio/mp4")
+    if call:
+        new.append(file_block(call, CAPTION_CALL))
+    if new:
+        store._request("PATCH", "/blocks/{}/children".format(target), {"children": new, "after": intro["id"]})
+    print("첨부 파일 {}개를 바꿨어요.".format(len(new)))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--env", required=True)
@@ -141,12 +177,17 @@ def main():
     ap.add_argument("--video")
     ap.add_argument("--public", help="게시된 데모 홈 주소 (notion.site). 가이드의 '데모 홈으로' 링크에 씀")
     ap.add_argument("--into", help="내용을 채울 빈 가이드 페이지 (링크 또는 ID)")
+    ap.add_argument("--refresh-files", action="store_true",
+                    help="--into 가이드의 첨부 파일(대화 txt·통화 녹음)만 새로 올려 바꾸기")
     a = ap.parse_args()
     env = read_env(os.path.expanduser(a.env))
     store = NotionStore(env["NOTION_API_KEY"], "", "", "")
     home = page_id(a.home)
     home_url = a.public or ("https://app.notion.com/p/" + home)
 
+    if a.into and a.refresh_files:
+        refresh_files(store, page_id(a.into))
+        return
     if a.into:
         target = page_id(a.into)
         if store._request("GET", "/blocks/{}/children?page_size=5".format(target)).get("results"):
