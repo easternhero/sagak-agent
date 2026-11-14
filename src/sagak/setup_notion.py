@@ -62,10 +62,15 @@ def _search(token: str) -> list:
         cursor = data.get("next_cursor")
 
 
+SEEN: list = []  # 키로 보이는 DB 제목 (진단용)
+
+
 def find(token: str) -> dict:
     """제목별 DB 후보 {제목: [id, ...]}"""
     out = {t: [] for t in TITLES}
+    SEEN.clear()
     for db in _search(token):
+        SEEN.append("".join(t.get("plain_text", "") for t in db.get("title") or []).strip() or "(제목 없음)")
         if db.get("archived") or db.get("in_trash"):
             continue
         title = "".join(t.get("plain_text", "") for t in db.get("title") or []).strip()
@@ -88,4 +93,10 @@ def run(env_path: str, dry_run: bool = False) -> dict:
             problems.append("'{}' DB {}개 ({})".format(title, len(ids), "없음 — 연결을 추가했나요?" if not ids else "여러 개 — 하나만 남겨 주세요"))
     if not problems and not dry_run:
         write_env(env_path, values)
-    return {"found": values, "problems": problems, "written": bool(values) and not problems and not dry_run}
+    out = {"found": values, "problems": problems, "written": bool(values) and not problems and not dry_run}
+    if problems:
+        out["visible_databases"] = SEEN[:30]
+        if not SEEN:
+            out["hint"] = ("이 키로 볼 수 있는 DB가 하나도 없어요. 노션에서 데모 홈 페이지 → ⋯ → 연결 → 이 키의 연결을 추가했는지, "
+                           "연결(integration)을 데모 페이지와 같은 워크스페이스에서 만들었는지 확인해 주세요.")
+    return out
