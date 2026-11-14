@@ -1,0 +1,6 @@
+name: sagak-demo-access
+version: 1.0.0
+description: "사각사각 공개 데모 봇의 사용 신청·승인. 허용되지 않은 사람이 말을 걸면 신청을 받고, 관리자에게 알리고, 관리자가 /demo_approve·/demo_deny로 처리한다."
+author: sagak-agent
+provides_hooks:
+  - pre_gateway_dispatch
