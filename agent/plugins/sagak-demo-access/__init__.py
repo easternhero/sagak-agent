@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import threading
 import time
@@ -19,6 +20,7 @@ import urllib.request
 from pathlib import Path
 
 PLATFORM = "telegram"
+logger = logging.getLogger("sagak-demo-access")
 REMIND_SECONDS = 600  # 대기 중인 사람이 또 말을 걸면 10분에 한 번만 다시 안내
 
 _lock = threading.Lock()
@@ -223,9 +225,14 @@ def _pick(state: dict, args: str):
 
 
 def _is_admin(kwargs) -> bool:
+    """Hermes가 먼저 관리자만 통과시킨다(user_allowed_commands에 없음). 보낸 사람 정보가 오면 한 번 더 확인."""
     source = kwargs.get("source")
     uid = str(getattr(source, "user_id", "") or "")
-    return bool(uid) and uid in admins()
+    ids = admins()
+    ok = (uid in ids) if (uid and ids) else True
+    if not ok:
+        logger.warning("sagak-demo-access: 관리자 아님 uid=%s admins=%s home=%s", uid, ids, _home())
+    return ok
 
 
 def decide(args: str, approve: bool, store=None, sender=send, admin_ok: bool = True) -> str:

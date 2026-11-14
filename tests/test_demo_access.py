@@ -67,6 +67,7 @@ class DemoAccessTest(unittest.TestCase):
         self.assertEqual(access.decide("1", True, admin_ok=False), "관리자만 쓸 수 있어요.")
         self.assertFalse(access._is_admin({"source": SimpleNamespace(user_id="111")}))
         self.assertTrue(access._is_admin({"source": SimpleNamespace(user_id="999")}))
+        self.assertTrue(access._is_admin({}))  # 보낸 사람 정보가 없으면 Hermes 관리자 확인에 맡김
 
 
 if __name__ == "__main__":
