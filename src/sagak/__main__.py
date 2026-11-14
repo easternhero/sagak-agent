@@ -11,7 +11,8 @@
                                            상품의 장소 링크를 노션 '상품'에 넣고 그 상품의 진행 중 이벤트에도 달기
   python3 -m sagak recheck-maps [--dry-run]  모든 이벤트 지도 링크를 네이버로 다시 확인 (확인 안 된 자동 링크는 지움)
   python3 -m sagak cleanup-test [--dry-run]  [테스트] 고객·이벤트·상담을 한꺼번에 휴지통으로
-  python3 -m sagak demo-reset [--dry-run]    공개 데모: 리뷰어(상담자 '리뷰어 #…')가 남긴 상담과 그것만으로 생긴 이벤트·고객을 휴지통으로
+  python3 -m sagak demo-reset [--dry-run] [--only "리뷰어 #3"]
+                                           공개 데모: 리뷰어(상담자 '리뷰어 #…')가 남긴 상담과 그것만으로 생긴 이벤트·고객을 휴지통으로
   python3 -m sagak demo                      키 없이 체험: 가상 상담 6건을 봇과 같은 코드로 처리해 답장·기록을 보여 줌
   python3 -m sagak setup-notion --env <.env> [--dry-run]
                                            그 .env의 노션 키로 고객·이벤트(의뢰)·상담 이력·상품 DB를 찾아 ID 채우기
@@ -196,7 +197,11 @@ def main(argv=None) -> int:
             return 0
         if cmd == "demo-reset":
             store = NotionStore.from_env()
-            found = store.reviewer_pages()
+            from .demo_mode import is_reviewer_label
+            only = _option(argv, "--only")
+            if only is not None and not is_reviewer_label(only):
+                raise InputError("BAD_ONLY", "--only에는 '리뷰어 #번호'만 쓸 수 있어요.")
+            found = store.reviewer_pages(only=only)
             dry = "--dry-run" in argv
             if not dry:
                 for kind in ("consultations", "events", "customers"):

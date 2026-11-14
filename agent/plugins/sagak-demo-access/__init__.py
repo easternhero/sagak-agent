@@ -14,6 +14,8 @@ import asyncio
 import json
 import logging
 import os
+import subprocess
+import sys
 import threading
 import time
 import urllib.request
@@ -167,7 +169,8 @@ def approved_message(no: str) -> str:
             "{name} / {phone}\n2차 통화 메모: 장소를 레스토랑으로 바꿀 수 있는지 물어봄. 날짜는 아직 고민 중이라고 함.\n\n"
             "직접 쓴 상담이나 녹음 파일(m4a·mp3), 카카오톡 대화 내보내기(txt)도 보낼 수 있어요. "
             "기록은 공개 노션에 올라가니 실제 이름·연락처는 쓰지 말고, 연락처는 010-0000-으로 시작하는 가상 번호를 써 주세요. "
-            "노션에서 상담자가 '리뷰어 #{no}'인 기록이 직접 보낸 거예요.").format(no=no, name=name, phone=phone)
+            "노션에서 상담자가 '리뷰어 #{no}'인 기록이 직접 보낸 거예요. "
+            "다 해 본 뒤 내 기록을 지우려면 /demo_reset 을 보내 주세요.").format(no=no, name=name, phone=phone)
 
 
 MSG_DENIED = "이번 데모 신청은 승인되지 않았어요. 데모 영상과 노션에서 결과를 볼 수 있어요."
@@ -300,11 +303,77 @@ def list_requests(admin_ok: bool = True) -> str:
     return "\n".join(rows)
 
 
+# ---- 데모 기록 정리 (관리자 전용 /demo_reset) -----------------------------
+
+RESET_CONFIRM_SECONDS = 600
+REPO = Path(__file__).resolve().parents[3]  # agent/plugins/sagak-demo-access/__init__.py → 레포 (심볼릭 링크를 따라감)
+
+
+def _run_reset(dry_run: bool, only: str = None) -> dict:
+    """`python3 -m sagak demo-reset`을 데모 프로필 .env 값으로 실행 (게이트웨이 환경변수에는 다른 봇 값이 섞일 수 있음)."""
+    env = dict(os.environ)
+    env.update(_env_file())
+    env["PYTHONPATH"] = str(REPO / "src")
+    cmd = [sys.executable, "-m", "sagak", "demo-reset"] + (["--dry-run"] if dry_run else []) + (["--only", only] if only else [])
+    out = subprocess.run(cmd, cwd=str(REPO), env=env, capture_output=True, text=True, timeout=180)
+    try:
+        return json.loads(out.stdout)
+    except ValueError:
+        return {"ok": False, "message": (out.stderr or out.stdout or "출력 없음")[-300:]}
+
+
+def _summary(res: dict, limit: int = 8) -> str:
+    lines = []
+    for key, label in (("customers", "고객"), ("events", "이벤트"), ("consultations", "상담")):
+        items = res.get(key) or []
+        head = ", ".join(items[:limit]) + (" 외 {}건".format(len(items) - limit) if len(items) > limit else "")
+        lines.append("{} {}건{}".format(label, len(items), (": " + head) if items else ""))
+    return "\n".join(lines)
+
+
+def demo_reset(args: str = "", user_id: str = "", admin: bool = False, runner=_run_reset, now: float = None) -> str:
+    """'/demo_reset' → 지울 목록 미리 보기, 10분 안에 '/demo_reset 확인' → 휴지통으로.
+    리뷰어는 자기 기록('리뷰어 #번호')만, 관리자는 모든 리뷰어 기록. 기본 예시·관리자 기록은 남는다 (D60)."""
+    now = now or time.time()
+    uid = str(user_id or "")
+    with _lock:
+        state = load_state()
+        only = None
+        if not admin:
+            no, r = _find_user(state, uid)
+            if not r or r.get("status") != "approved":
+                return "승인된 데모 사용자만 쓸 수 있어요."
+            only = "리뷰어 #" + no
+        asked = state.setdefault("reset_asked", {})
+        confirm = (args or "").strip() in ("확인", "yes", "y")
+        if confirm and now - asked.get(uid, 0) > RESET_CONFIRM_SECONDS:
+            return "먼저 /demo_reset 으로 지울 목록을 확인해 주세요 (확인은 10분 안에)."
+        asked[uid] = 0 if confirm else now
+        save_state(state)
+    res = runner(dry_run=not confirm, only=only)
+    if not res.get("ok"):
+        return "정리하지 못했어요: " + str(res.get("message") or res.get("error") or "알 수 없는 오류")
+    whose = "내({})".format(only) if only else "모든 리뷰어"
+    if not any(res.get(k) for k in ("customers", "events", "consultations")):
+        return "지울 {} 기록이 없어요.".format(whose)
+    if confirm:
+        return "{} 기록을 휴지통으로 보냈어요.\n{}".format(whose, _summary(res))
+    return ("{} 기록 정리 미리 보기 — 기본 예시와 다른 사람 기록은 남아요.\n{}\n\n지우려면 10분 안에 /demo_reset 확인 을 보내 주세요."
+            .format(whose, _summary(res)))
+
+
+def _uid(kw) -> str:
+    return str(getattr(kw.get("source"), "user_id", "") or "")
+
+
 def register(ctx) -> None:
     ctx.register_hook("pre_gateway_dispatch", on_pre_gateway_dispatch)
     ctx.register_command("demo-approve", lambda raw_args="", **kw: decide(raw_args, True, admin_ok=_is_admin(kw)),
                          description="데모 사용 신청 승인 (관리자)", args_hint="<번호>")
     ctx.register_command("demo-deny", lambda raw_args="", **kw: decide(raw_args, False, admin_ok=_is_admin(kw)),
                          description="데모 사용 신청 거절 (관리자)", args_hint="<번호>")
+    ctx.register_command("demo-reset",
+                         lambda raw_args="", **kw: demo_reset(raw_args, user_id=_uid(kw), admin=_uid(kw) in admins()),
+                         description="내가 남긴 데모 기록 정리 (확인 후 휴지통)", args_hint="[확인]")
     ctx.register_command("demo-requests", lambda raw_args="", **kw: list_requests(admin_ok=_is_admin(kw)),
                          description="데모 사용 신청 목록 (관리자)")

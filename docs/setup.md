@@ -50,7 +50,7 @@ PYTHONPATH=src python3 -m sagak demo
 승인 안내에는 신청 번호마다 다른 가상 고객 예시가 옵니다. 노션에서 상담자가 `리뷰어 #신청번호`인 기록이 내가 보낸 것입니다. 고치고 싶은 내용은 같은 고객으로 다시 보내면 다음 상담으로 이어지고, 다른 값은 덮어쓰지 않고 '기존 정보와 다름'으로 표시됩니다.
 업무와 관계없는 요청(날씨, 검색 등)은 거절합니다.
 
-개발자 쪽: 리뷰어 기록 정리는 `sagak demo-reset --dry-run`으로 목록을 본 뒤 `--dry-run` 없이 실행(기본 예시는 남음). 같은 데모 봇에서 관리자에게 신청 알림이 오고, `/demo_approve 번호` · `/demo_deny 번호` · `/demo_requests`로 밖에서도 처리합니다(Hermes 플러그인 [`agent/plugins/sagak-demo-access`](../agent/plugins/sagak-demo-access), 관리자만 실행 가능).
+내 기록 정리: 데모 봇에 `/demo_reset` → 목록 확인 → 10분 안에 `/demo_reset 확인`(내 '리뷰어 #번호' 기록만 휴지통으로). 관리자가 보내면 모든 리뷰어 기록이 대상이고, 기본 예시와 관리자 기록은 남습니다. 같은 데모 봇에서 관리자에게 신청 알림이 오고, `/demo_approve 번호` · `/demo_deny 번호` · `/demo_requests`로 밖에서도 처리합니다(Hermes 플러그인 [`agent/plugins/sagak-demo-access`](../agent/plugins/sagak-demo-access), 관리자만 실행 가능).
 
 ## C. 내 노션·봇으로 설치
 

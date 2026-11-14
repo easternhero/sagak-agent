@@ -65,6 +65,22 @@ class DemoAccessTest(unittest.TestCase):
         self.assertIn("이미", access.decide("2", True, store=store, sender=self.send))
         self.assertIn("#1 승인", access.list_requests())
 
+    def test_reset_own_records_with_confirm(self):
+        calls = []
+
+        def runner(dry_run, only=None):
+            calls.append((dry_run, only))
+            return {"ok": True, "customers": ["서도윤"], "events": ["서도윤 · 프로포즈 · 12/5"], "consultations": ["a", "b"]}
+        access.handle_unknown("111", "가", "111", sender=self.send)
+        self.assertIn("승인된", access.demo_reset("", user_id="111", runner=runner))  # 승인 전
+        access.decide("1", True, store=FakeStore(), sender=self.send)
+        self.assertIn("먼저", access.demo_reset("확인", user_id="111", runner=runner, now=1000))
+        self.assertIn("미리 보기", access.demo_reset("", user_id="111", runner=runner, now=1000))
+        self.assertIn("휴지통", access.demo_reset("확인", user_id="111", runner=runner, now=1100))
+        self.assertEqual(calls, [(True, "리뷰어 #1"), (False, "리뷰어 #1")])  # 자기 기록만
+        self.assertIn("모든 리뷰어", access.demo_reset("", user_id="999", admin=True, runner=runner, now=1200))
+        self.assertEqual(calls[-1], (True, None))
+
     def test_non_admin_refused(self):
         self.assertEqual(access.decide("1", True, admin_ok=False), "관리자만 쓸 수 있어요.")
         self.assertFalse(access._is_admin({"source": SimpleNamespace(user_id="111")}))
