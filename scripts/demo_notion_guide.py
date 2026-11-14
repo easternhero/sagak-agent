@@ -74,6 +74,21 @@ def file_block(upload_id, caption):
                                      "caption": [t(caption)]}}
 
 
+SCRIPT_TOGGLE = "📄 통화 대본 보기"
+
+
+def script_toggle():
+    """통화 녹음 바로 아래에 둘 대본 토글 (demo/call-script.txt)."""
+    path = os.path.join(ROOT, "demo", "call-script.txt")
+    lines = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            who, _, text = line.strip().partition("|")
+            if text:
+                lines.append(para(t(who + ": ", bold=True), t(text)))
+    return {"type": "toggle", "toggle": {"rich_text": [t(SCRIPT_TOGGLE)], "children": lines}}
+
+
 def page_id(text: str) -> str:
     m = re.search(r"([0-9a-f]{32})", text.replace("-", ""))
     if not m:
@@ -120,6 +135,7 @@ def blocks(home_url, video, chat_id, audio_id):
         out.append(file_block(chat_id, CAPTION_CHAT))
     if audio_id:
         out.append(file_block(audio_id, CAPTION_CALL))
+        out.append(script_toggle())
     out += [
         callout("💡", "yellow_background",
                 t("연락처는 꼭 "), t("010-0000-", bold=True),
@@ -156,7 +172,9 @@ def refresh_files(store, target):
     if intro is None:
         sys.exit("가이드에서 '{}' 문장을 찾지 못했어요.".format(FILES_INTRO))
     for b in kids:
-        if b.get("type") == "file":
+        is_script = b.get("type") == "toggle" and "".join(
+            r.get("plain_text", "") for r in b["toggle"].get("rich_text", [])) == SCRIPT_TOGGLE
+        if b.get("type") == "file" or is_script:
             store._request("DELETE", "/blocks/{}".format(b["id"]))
     new = []
     chat = _upload(store, "demo/kakao-chat.txt", "text/plain")
@@ -165,9 +183,10 @@ def refresh_files(store, target):
     call = _upload(store, "demo/call-recording.m4a", "audio/mp4")
     if call:
         new.append(file_block(call, CAPTION_CALL))
+        new.append(script_toggle())
     if new:
         store._request("PATCH", "/blocks/{}/children".format(target), {"children": new, "after": intro["id"]})
-    print("첨부 파일 {}개를 바꿨어요.".format(len(new)))
+    print("첨부 파일과 대본을 바꿨어요 (블록 {}개).".format(len(new)))
 
 
 def main():
