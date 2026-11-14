@@ -54,7 +54,7 @@ PYTHONPATH=src python3 -m sagak demo
 1. 공개 데모 노션 페이지 오른쪽 위 **복제**로 내 워크스페이스에 복사합니다.
 2. https://www.notion.so/profile/integrations 에서 **새 연결(내부)** → 키를 복사합니다.
 3. 복제한 홈 페이지 → ⋯ → **연결** → 방금 만든 연결을 추가합니다.
-4. 고객·이벤트(의뢰)·상담 이력·상품 DB를 각각 열어 주소의 32자리 ID를 적어 둡니다.
+4. DB ID는 3단계에서 `.env`에 키를 넣은 뒤 `PYTHONPATH=src python3 -m sagak setup-notion --env ~/.hermes/profiles/sagak/.env`로 자동으로 채웁니다.
 
 ### 2. 텔레그램 봇
 
@@ -77,10 +77,7 @@ cp agent/SOUL.md ~/.hermes/profiles/sagak/SOUL.md
 TELEGRAM_BOT_TOKEN=...
 TELEGRAM_ALLOWED_USERS=내 숫자 ID
 NOTION_API_KEY=...
-SAGAK_NOTION_CUSTOMERS_DB=...
-SAGAK_NOTION_EVENTS_DB=...
-SAGAK_NOTION_CONSULTATIONS_DB=...
-SAGAK_NOTION_PRODUCTS_DB=...
+# SAGAK_NOTION_*_DB 4개는 setup-notion이 채움
 SAGAK_OPENAI_STT_KEY=...          # 녹음 전사 (텍스트만 쓰면 생략 가능)
 SAGAK_BUSINESS_FILE=/레포경로/agent/demo/business.json
 SAGAK_DEMO=1
@@ -92,7 +89,7 @@ SAGAK_DEMO=1
 
 ```bash
 cd sagak-agent
-PYTHONPATH=src python3 -m sagak ping     # 노션 DB 4개에 닿는지 확인
+PYTHONPATH=src python3 -m sagak setup-notion --env ~/.hermes/profiles/sagak/.env   # 노션 DB ID 채우기
 hermes -p sagak gateway run              # 봇 실행 (상시 실행은 hermes -p sagak gateway install)
 ```
 
