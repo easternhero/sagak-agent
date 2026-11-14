@@ -9,7 +9,7 @@
 | B. 데모 봇 써 보기 | 텔레그램 | 바로 (허용 요청 후) |
 | C. 내 노션·봇으로 설치 | 노션·텔레그램·OpenAI 계정, Hermes Agent | 30분 |
 
-결과를 보는 곳: **[공개 데모 노션](https://app.notion.com/p/0976d6e4c49f82ca8fab813dfe18cf6d)** (가상 업체 '설렘 이벤트')
+결과를 보는 곳: **[공개 데모 노션](https://sagak-demo-home.notion.site/0976d6e4c49f82ca8fab813dfe18cf6d)** (가상 업체 '설렘 이벤트')
 
 ## A. 키 없이 체험 (1분)
 

@@ -138,11 +138,12 @@ def main():
     ap.add_argument("--env", required=True)
     ap.add_argument("--home", required=True)
     ap.add_argument("--video")
+    ap.add_argument("--public", help="게시된 데모 홈 주소 (notion.site). 가이드의 '데모 홈으로' 링크에 씀")
     a = ap.parse_args()
     env = read_env(os.path.expanduser(a.env))
     store = NotionStore(env["NOTION_API_KEY"], "", "", "")
     home = page_id(a.home)
-    home_url = "https://app.notion.com/p/" + home
+    home_url = a.public or ("https://app.notion.com/p/" + home)
 
     children = store._request("GET", "/blocks/{}/children?page_size=100".format(home)).get("results", [])
     for b in children:
