@@ -29,13 +29,13 @@ class FakeStore:
 class DemoAccessTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        os.environ["HERMES_HOME"] = self.tmp.name
+        os.environ["SAGAK_DEMO_HOME"] = self.tmp.name
         with open(os.path.join(self.tmp.name, "config.yaml"), "w", encoding="utf-8") as f:
             f.write("platforms:\n  telegram:\n    extra:\n      allow_admin_from:\n        - '999'\n")
         self.sent = []
 
     def tearDown(self):
-        os.environ.pop("HERMES_HOME", None)
+        os.environ.pop("SAGAK_DEMO_HOME", None)
         self.tmp.cleanup()
 
     def send(self, chat, text):

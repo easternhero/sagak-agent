@@ -27,8 +27,23 @@ _store_ref = {"store": None}
 
 # ---- 설정·상태 -------------------------------------------------------------
 
+PROFILE = "sagak-demo"  # 이 플러그인을 켠 프로필 (게이트웨이가 여러 프로필을 함께 돌려도 이 폴더를 씀)
+
+
 def _home() -> Path:
-    return Path(os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes"))
+    """데모 프로필 폴더. 테스트는 HERMES_HOME으로 바꾼다."""
+    if os.environ.get("SAGAK_DEMO_HOME"):
+        return Path(os.environ["SAGAK_DEMO_HOME"])
+    try:
+        from hermes_constants import get_default_hermes_root
+        root = Path(get_default_hermes_root())
+    except Exception:
+        root = Path(os.path.expanduser("~/.hermes"))
+    if root.name == PROFILE:
+        return root
+    if (root / "profiles" / PROFILE).is_dir():
+        return root / "profiles" / PROFILE
+    return root
 
 
 def _env_file() -> dict:
@@ -45,7 +60,8 @@ def _env_file() -> dict:
 
 
 def _setting(name: str) -> str:
-    return os.environ.get(name) or _env_file().get(name, "")
+    """데모 프로필 .env 값이 먼저 (한 게이트웨이가 여러 프로필을 돌리면 프로세스 환경변수는 다른 봇 것일 수 있음)."""
+    return _env_file().get(name) or os.environ.get(name, "")
 
 
 def admins() -> list:
