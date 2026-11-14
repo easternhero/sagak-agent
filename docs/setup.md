@@ -1,5 +1,7 @@
 # 직접 써 보기
 
+처음이라면 **[데모 가이드](https://sagak-demo-guide.notion.site/4186d6e4c49f80c381b0c297e5b587f9)**부터 보세요(공개 노션, 로그인 필요 없음).
+
 사각사각은 텔레그램 봇 + Hermes Agent + 노션으로 돌아가서, 웹 주소 하나로 배포하는 형태가 아닙니다.
 대신 세 가지 방법으로 써 볼 수 있습니다. 모든 데모 데이터는 가상입니다.
 
@@ -9,7 +11,7 @@
 | B. 데모 봇 써 보기 | 텔레그램 | 바로 (허용 요청 후) |
 | C. 내 노션·봇으로 설치 | 노션·텔레그램·OpenAI 계정, Hermes Agent | 30분 |
 
-결과를 보는 곳: **[공개 데모 노션](https://sagak-demo-home.notion.site/0976d6e4c49f82ca8fab813dfe18cf6d)** (가상 업체 '설렘 이벤트')
+결과를 보는 곳: **[공개 데모 노션](https://sagak-demo-guide.notion.site/0976d6e4c49f82ca8fab813dfe18cf6d)** (가상 업체 '설렘 이벤트')
 
 ## A. 키 없이 체험 (1분)
 

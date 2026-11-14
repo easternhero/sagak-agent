@@ -10,10 +10,10 @@ AX School 프로젝트 제출용 레포입니다.
 
 ## 직접 써 보기
 
-**데모 가이드:** https://claude.ai/artifact/Ebo588Qv1cxwLczG1uBZaz — 1분 보기 · 데모 봇 써 보기 · 내 노션·봇으로 쓰기
+**데모 가이드 (공개 노션):** https://sagak-demo-guide.notion.site/4186d6e4c49f80c381b0c297e5b587f9 — 1분 보기 · 데모 봇 써 보기 · 내 노션·봇으로 쓰기
 
 - **키 없이 1분 체험:** `PYTHONPATH=src python3 -m sagak demo` — 가상 상담 6건을 봇과 같은 코드로 처리해 답장과 기록을 보여 줍니다.
-- **공개 데모 노션:** [설렘 이벤트 홈 (데모)](https://sagak-demo-home.notion.site/0976d6e4c49f82ca8fab813dfe18cf6d) — 가상 업체·가상 고객
+- **공개 데모 노션:** [설렘 이벤트 홈 (데모)](https://sagak-demo-guide.notion.site/0976d6e4c49f82ca8fab813dfe18cf6d) — 가상 업체·가상 고객
 - **데모 봇:** [@sagak_demo_bot](https://t.me/sagak_demo_bot) — 말을 걸면 사용 신청이 접수되고, 승인되면 바로 써 볼 수 있어요
 - **자세한 사용·설치 방법:** [docs/setup.md](docs/setup.md)
 
