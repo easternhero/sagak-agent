@@ -350,7 +350,7 @@ class NotionStore:
                 found["consultations"][p["id"]] = title(p)
         return found
 
-    def reviewer_pages(self, only: Optional[str] = None) -> dict:
+    def reviewer_pages(self, only: Optional[str] = None, everything: bool = False) -> dict:
         """공개 데모 정리용 (D60): 상담자가 '리뷰어 #…'인 상담, 그 상담만 있는 이벤트, 그런 이벤트만 있는 고객.
         처음 넣어 둔 기본 예시(직원이 상담자인 기록)는 남는다."""
         from .demo_mode import is_reviewer_label
@@ -358,6 +358,11 @@ class NotionStore:
         def page(pid):
             return self._request("GET", "/pages/{}".format(pid))
 
+        if everything:  # 전체 정리: 기본 예시(가상 직원 상담자)만 남기고 관리자·리뷰어·상담자 없는 기록 모두
+            from .demo_mode import is_not_seed
+            return reviewer_cleanup_plan(
+                self._query_all("consultations", {"property": "제목", "title": {"is_not_empty": True}}),
+                page, is_not_seed)
         if only:  # 한 리뷰어 것만 ('리뷰어 #3')
             return reviewer_cleanup_plan(
                 self._query_all("consultations", {"property": "상담자", "select": {"equals": only}}),

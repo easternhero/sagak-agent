@@ -52,6 +52,15 @@ def is_reviewer_label(name: Optional[str]) -> bool:
     return bool(name) and name.startswith(REVIEWER_PREFIX)
 
 
+# 데모 노션에 처음 넣어 둔 기본 예시의 상담자 (가상 업체 직원). 전체 정리 때 이 상담자 기록만 남긴다.
+SEED_STAFF = ("김하늘", "이바다", "박구름", "최별")
+
+
+def is_not_seed(name: Optional[str]) -> bool:
+    keep = [n.strip() for n in os.environ.get("SAGAK_DEMO_KEEP_STAFF", ",".join(SEED_STAFF)).split(",") if n.strip()]
+    return (name or "") not in keep
+
+
 NOTION_URL_RE = re.compile(  # 노션 API의 페이지 주소: 예전 www.notion.so/… 와 지금 app.notion.com/p/… 둘 다
     r"https://(?:(?:www\.)?notion\.so|app\.notion\.com)/(?:[^\s\"/]+/)?(?:[^\s\"/?]*-)?([0-9a-f]{32})(?:\?[^\s\"]*)?")
 

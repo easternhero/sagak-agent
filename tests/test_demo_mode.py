@@ -84,6 +84,9 @@ class DemoModeTest(unittest.TestCase):
         self.assertEqual(set(out["consultations"]), {"s1", "s3"})
         self.assertEqual(set(out["events"]), {"e1"})
         self.assertEqual(set(out["customers"]), {"c1"})
+        everything = reviewer_cleanup_plan([pages["s1"], pages["s2"], pages["s3"]], pages.__getitem__, demo_mode.is_not_seed)
+        self.assertEqual(set(everything["consultations"]), {"s1", "s3"})  # 김하늘(기본 예시) 상담만 남음
+        self.assertEqual(set(everything["customers"]), {"c1"})
 
 
 if __name__ == "__main__":

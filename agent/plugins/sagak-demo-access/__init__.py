@@ -309,12 +309,12 @@ RESET_CONFIRM_SECONDS = 600
 REPO = Path(__file__).resolve().parents[3]  # agent/plugins/sagak-demo-access/__init__.py → 레포 (심볼릭 링크를 따라감)
 
 
-def _run_reset(dry_run: bool, only: str = None) -> dict:
+def _run_reset(dry_run: bool, only: str = None, everything: bool = False) -> dict:
     """`python3 -m sagak demo-reset`을 데모 프로필 .env 값으로 실행 (게이트웨이 환경변수에는 다른 봇 값이 섞일 수 있음)."""
     env = dict(os.environ)
     env.update(_env_file())
     env["PYTHONPATH"] = str(REPO / "src")
-    cmd = [sys.executable, "-m", "sagak", "demo-reset"] + (["--dry-run"] if dry_run else []) + (["--only", only] if only else [])
+    cmd = [sys.executable, "-m", "sagak", "demo-reset"] + (["--dry-run"] if dry_run else []) + (["--only", only] if only else []) + (["--all"] if everything else [])
     out = subprocess.run(cmd, cwd=str(REPO), env=env, capture_output=True, text=True, timeout=180)
     try:
         return json.loads(out.stdout)
@@ -333,7 +333,7 @@ def _summary(res: dict, limit: int = 8) -> str:
 
 def demo_reset(args: str = "", user_id: str = "", admin: bool = False, runner=_run_reset, now: float = None) -> str:
     """'/demo_reset' → 지울 목록 미리 보기, 10분 안에 '/demo_reset 확인' → 휴지통으로.
-    리뷰어는 자기 기록('리뷰어 #번호')만, 관리자는 모든 리뷰어 기록. 기본 예시·관리자 기록은 남는다 (D60)."""
+    리뷰어는 자기 기록('리뷰어 #번호')만, 관리자는 기본 예시만 남기고 전부(데모를 처음 상태로) (D61)."""
     now = now or time.time()
     uid = str(user_id or "")
     with _lock:
@@ -350,16 +350,17 @@ def demo_reset(args: str = "", user_id: str = "", admin: bool = False, runner=_r
             return "먼저 /demo_reset 으로 지울 목록을 확인해 주세요 (확인은 10분 안에)."
         asked[uid] = 0 if confirm else now
         save_state(state)
-    res = runner(dry_run=not confirm, only=only)
+    res = runner(dry_run=not confirm, only=only, everything=admin)
     if not res.get("ok"):
         return "정리하지 못했어요: " + str(res.get("message") or res.get("error") or "알 수 없는 오류")
-    whose = "내({})".format(only) if only else "모든 리뷰어"
+    whose = "내({})".format(only) if only else "기본 예시를 뺀 모든"
     if not any(res.get(k) for k in ("customers", "events", "consultations")):
         return "지울 {} 기록이 없어요.".format(whose)
     if confirm:
         return "{} 기록을 휴지통으로 보냈어요.\n{}".format(whose, _summary(res))
-    return ("{} 기록 정리 미리 보기 — 기본 예시와 다른 사람 기록은 남아요.\n{}\n\n지우려면 10분 안에 /demo_reset 확인 을 보내 주세요."
-            .format(whose, _summary(res)))
+    keep = "기본 예시와 다른 사람 기록은 남아요." if only else "처음 넣어 둔 기본 예시만 남아요 (관리자 기록도 지워져요)."
+    return ("{} 기록 정리 미리 보기 — {}\n{}\n\n지우려면 10분 안에 /demo_reset 확인 을 보내 주세요."
+            .format(whose, keep, _summary(res)))
 
 
 def _uid(kw) -> str:
