@@ -170,7 +170,7 @@ def blocks(home_url, video, chat_id, audio_id):
                "지금은 Hermes를 직접 설치해 연결하는 방법을 문서로 안내해요.")),
         bullet(t("설치 방법 (docs/setup.md)", link=REPO + "/blob/main/docs/setup.md")),
         divider(),
-        para(t("만든 사람: 판교춘자 (AX 스쿨) · 모든 업체·고객·연락처는 가상 데이터예요")),
+        para(t("만든 사람: 판교춘자 (AX School) · 모든 업체·고객·연락처는 가상 데이터예요")),
     ]
     return out
 
