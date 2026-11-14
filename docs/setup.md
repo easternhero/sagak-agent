@@ -53,7 +53,7 @@ PYTHONPATH=src python3 -m sagak demo
 
 ### 1. 노션
 
-1. 공개 데모 노션 페이지 오른쪽 위 **복제**로 내 워크스페이스에 복사합니다.
+1. 내 워크스페이스에 고객·이벤트(의뢰)·상담 이력·상품 DB 4개를 [docs/notion-schema.md](notion-schema.md)대로 만듭니다(이름과 칸 이름이 같아야 함). 데모 노션 복제와 자동 생성은 컨테이너 버전에서 지원할 예정입니다.
 2. https://www.notion.so/profile/integrations 에서 **새 연결(내부)** → 키를 복사합니다.
 3. 복제한 홈 페이지 → ⋯ → **연결** → 방금 만든 연결을 추가합니다.
 4. DB ID는 3단계에서 `.env`에 키를 넣은 뒤 `PYTHONPATH=src python3 -m sagak setup-notion --env ~/.hermes/profiles/sagak/.env`로 자동으로 채웁니다.

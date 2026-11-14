@@ -1,8 +1,9 @@
-"""공개 데모 노션 홈 아래에 '사각사각 데모 가이드' 페이지를 만든다 (개발자 PC에서 한 번).
+"""공개 데모용 '사각사각 데모 가이드' 노션 페이지를 채운다 (개발자 PC에서 한 번).
 
-쓰는 법:
+쓰는 법 (권장: 빈 가이드 페이지를 맨 위에 만들고 데모 홈을 그 아래로 옮긴 뒤):
   PYTHONPATH=src python3 scripts/demo_notion_guide.py --env ~/.hermes/profiles/sagak-demo/.env \
-      --home <데모 홈 페이지 링크 또는 ID> [--video <영상 링크>]
+      --into <빈 가이드 페이지 링크> --home <데모 홈 링크> [--public <게시된 데모 홈 주소>] [--video <영상 링크>]
+  --into 없이 쓰면 데모 홈 아래에 가이드 하위 페이지를 새로 만들고 홈 맨 위에 링크를 넣는다.
 
 - 데모 홈에 연결된 노션 키(.env의 NOTION_API_KEY)로 쓴다. 홈이 웹에 게시돼 있으면 가이드도 함께 공개된다.
 - demo/kakao-chat.txt, demo/call-recording.m4a(있으면)를 첨부해 리뷰어가 내려받아 봇에 보낼 수 있게 한다.
@@ -89,10 +90,10 @@ def blocks(home_url, video, chat_id, audio_id):
         para(t("녹음·대화 보내기 → 전사·내용 정리 → 같은 고객 찾기 → 노션 기록 → 확인할 것 답장", bold=True)),
         divider(),
         h2("1. 1분 만에 보기"),
-        para(t("봇이 정리한 결과가 쌓여 있는 이 데모 노션을 둘러보세요. "),
+        para(t("봇이 정리한 결과가 쌓여 있는 데모 홈(가상 업체 ‘설렘 이벤트’)을 둘러보세요. "),
              t("고객 → 이벤트 → 상담 이력", bold=True),
              t(" 순서로 열면 근거 문장, 녹음 클립, 전사 원문까지 볼 수 있어요.")),
-        bullet(t("데모 홈으로 돌아가기", link=home_url)),
+        bullet(t("결과 보기: 설렘 이벤트 홈 (데모)", link=home_url, bold=True)),
         bullet(t("시연 영상", link=video) if video else t("시연 영상: 곧 올라와요")),
         bullet(t("GitHub 저장소", link=REPO)),
         para(t("개발자라면 키 없이 터미널에서도 돌려 볼 수 있어요. 가상 상담 6건을 봇과 같은 코드로 처리해 답장과 기록을 보여 줘요.")),
@@ -103,7 +104,7 @@ def blocks(home_url, video, chat_id, audio_id):
         num(t("봇이 "), t("“사용 신청을 받았어요 (신청 #번호)”", bold=True), t("라고 답해요. 개발자에게 신청이 전달돼요.")),
         num(t("승인되면 봇이 "), t("“승인됐어요!”", bold=True), t("라고 알려 줘요. "), t("/new", code=True),
             t("를 누르고 아래 예시를 복사해 보내 보세요.")),
-        num(t("결과는 이 데모 노션에 바로 쌓여요. 봇 답장에 노션 링크도 있어요.")),
+        num(t("결과는 데모 홈에 바로 쌓여요. 봇 답장에 노션 링크도 있어요.")),
         callout("📝", "gray_background", t("새 상담 기록", bold=True),
                 t(" — 고객 · 이벤트 · 1차 상담이 생기고, 상품·일시·특이사항이 정리돼요")),
         code(EX_NEW),
@@ -139,17 +140,24 @@ def main():
     ap.add_argument("--home", required=True)
     ap.add_argument("--video")
     ap.add_argument("--public", help="게시된 데모 홈 주소 (notion.site). 가이드의 '데모 홈으로' 링크에 씀")
+    ap.add_argument("--into", help="내용을 채울 빈 가이드 페이지 (링크 또는 ID)")
     a = ap.parse_args()
     env = read_env(os.path.expanduser(a.env))
     store = NotionStore(env["NOTION_API_KEY"], "", "", "")
     home = page_id(a.home)
     home_url = a.public or ("https://app.notion.com/p/" + home)
 
-    children = store._request("GET", "/blocks/{}/children?page_size=100".format(home)).get("results", [])
-    for b in children:
-        if b.get("type") == "child_page" and b["child_page"].get("title") == TITLE:
-            sys.exit("이미 '{}' 페이지가 있어요: https://app.notion.com/p/{} (다시 만들려면 노션에서 지운 뒤 실행)".format(
-                TITLE, b["id"].replace("-", "")))
+    if a.into:
+        target = page_id(a.into)
+        if store._request("GET", "/blocks/{}/children?page_size=5".format(target)).get("results"):
+            sys.exit("가이드 페이지가 비어 있지 않아요. 내용을 지운 뒤 다시 실행해 주세요.")
+        home_url = a.public or ("https://app.notion.com/p/" + home)
+    else:
+        children = store._request("GET", "/blocks/{}/children?page_size=100".format(home)).get("results", [])
+        for b in children:
+            if b.get("type") == "child_page" and b["child_page"].get("title") == TITLE:
+                sys.exit("이미 '{}' 페이지가 있어요: https://app.notion.com/p/{} (다시 만들려면 노션에서 지운 뒤 실행)".format(
+                    TITLE, b["id"].replace("-", "")))
 
     def up(path, ctype):
         p = os.path.join(ROOT, path)
@@ -162,6 +170,12 @@ def main():
     chat_id = up("demo/kakao-chat.txt", "text/plain")
     audio_id = up("demo/call-recording.m4a", "audio/mp4")
     body = blocks(home_url, a.video, chat_id, audio_id)
+    if a.into:
+        for i in range(0, len(body), 95):
+            store._request("PATCH", "/blocks/{}/children".format(target), {"children": body[i:i + 95]})
+        store._request("PATCH", "/pages/{}".format(target), {"icon": {"type": "emoji", "emoji": "📘"}})
+        print("채웠어요:", "https://app.notion.com/p/" + target)
+        return
     page = store._request("POST", "/pages", {
         "parent": {"page_id": home}, "icon": {"type": "emoji", "emoji": "📘"},
         "properties": {"title": {"title": [t(TITLE)]}}, "children": body[:95]})
