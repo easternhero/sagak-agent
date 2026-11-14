@@ -52,7 +52,8 @@ def is_reviewer_label(name: Optional[str]) -> bool:
     return bool(name) and name.startswith(REVIEWER_PREFIX)
 
 
-NOTION_URL_RE = re.compile(r"https://(?:www\.)?notion\.so/(?:[^\s\"/]+/)?(?:[^\s\"/?]*-)?([0-9a-f]{32})(?:\?[^\s\"]*)?")
+NOTION_URL_RE = re.compile(  # 노션 API의 페이지 주소: 예전 www.notion.so/… 와 지금 app.notion.com/p/… 둘 다
+    r"https://(?:(?:www\.)?notion\.so|app\.notion\.com)/(?:[^\s\"/]+/)?(?:[^\s\"/?]*-)?([0-9a-f]{32})(?:\?[^\s\"]*)?")
 
 
 def public_links(obj: Any) -> Any:

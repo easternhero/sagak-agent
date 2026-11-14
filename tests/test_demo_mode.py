@@ -55,10 +55,14 @@ class DemoModeTest(unittest.TestCase):
             self.assertEqual(demo_mode.reviewer_label(), "판교춘자")
             out = demo_mode.public_links({"url": "https://www.notion.so/11-%EA%B9%80-41591ad5d4258157830cffc5518f165c",
                                           "list": ["https://www.notion.so/team/41591ad5d425818a9e32c6ccc867ed2f?pvs=4"],
-                                          "map": "https://naver.me/abc"})
+                                          "map": "https://naver.me/abc",
+                                          "app": "https://app.notion.com/p/12-24-4186d6e4c49f812d9a9ffc768c8e71e5",
+                                          "app2": "https://app.notion.com/p/4186d6e4c49f81daad3cd5a44df25e47"})
             self.assertEqual(out["url"], "https://demo-guide.notion.site/41591ad5d4258157830cffc5518f165c")
             self.assertEqual(out["list"][0], "https://demo-guide.notion.site/41591ad5d425818a9e32c6ccc867ed2f")
             self.assertEqual(out["map"], "https://naver.me/abc")
+            self.assertEqual(out["app"], "https://demo-guide.notion.site/4186d6e4c49f812d9a9ffc768c8e71e5")
+            self.assertEqual(out["app2"], "https://demo-guide.notion.site/4186d6e4c49f81daad3cd5a44df25e47")
         finally:
             for k in ("SAGAK_DEMO_ADMIN_IDS", "SAGAK_DEMO_ADMIN_NAME", "SAGAK_DEMO_NOTION_URL"):
                 os.environ.pop(k, None)
